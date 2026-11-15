@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: velovibe
+    runtime: node
+    region: frankfurt
+    buildCommand: npm ci && npm run lint && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/velovibe/health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.16.0
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: OWNER_EMAIL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: VITE_ADSENSE_CLIENT_ID
+        value: ""
+      - key: VITE_ADSENSE_DASHBOARD_SLOT
+        value: ""
+      - key: VITE_ADSENSE_SPOTS_SLOT
+        value: ""

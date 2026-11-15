@@ -1,0 +1,6 @@
+{
+  "name": "VeloVibe AI — Байк-копілот & Кабінет райдера",
+  "description": "Український цифровий велокопілот для райдерів і механіків: аналіз комплектації та геометрії велосипеда, перевірка сумісності компонентів і мапа місць для катання в Україні.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
