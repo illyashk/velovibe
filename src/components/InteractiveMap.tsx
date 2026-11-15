@@ -14,7 +14,7 @@ interface InteractiveMapProps {
   onAskAi: (prompt: string) => void;
 }
 
-type MapLayerType = 'esriDark' | 'satellite' | 'topo' | 'osm';
+type MapLayerType = 'satellite' | 'topo' | 'osm';
 
 const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (character) => ({
@@ -60,12 +60,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
       attribution: '&copy; OpenTopoMap',
       maxZoom: 17,
-    },
-    esriDark: {
-      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      maxZoom: 20,
-      subdomains: 'abcd',
     },
   };
 
@@ -407,7 +401,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         <Layers className="w-3.5 h-3.5 text-[#FFC400] ml-1 mr-0.5" />
         {(
           [
-            { id: 'esriDark', label: 'Темна мапа' },
             { id: 'satellite', label: 'Супутник HD' },
             { id: 'topo', label: 'Рельєф / Топо' },
             { id: 'osm', label: 'Вулиці OSM' },

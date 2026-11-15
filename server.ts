@@ -111,6 +111,189 @@ app.delete('/api/account', async (req: Request, res: Response) => {
   }
 });
 
+async function getAuthenticatedAdmin(req: Request) {
+  if (!supabaseAdmin) {
+    return null;
+  }
+  const authorization = req.header('authorization');
+  const accessToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!accessToken) {
+    return null;
+  }
+  const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
+  if (error || !data.user) {
+    return null;
+  }
+  const isOwner = Boolean(ownerEmail && data.user.email?.trim().toLocaleLowerCase('en-US') === ownerEmail);
+  const isAdmin = isOwner || data.user.app_metadata?.role === 'admin';
+  if (!isAdmin) {
+    return null;
+  }
+  return { userId: data.user.id, isOwner };
+}
+
+app.get('/api/admin/users', async (req: Request, res: Response) => {
+  const account = await getAuthenticatedAdmin(req);
+  if (!account) {
+    res.status(401).json({ error: 'Тільки адміністратор може переглядати профілі користувачів.' });
+    return;
+  }
+  if (!supabaseAdmin) {
+    res.status(503).json({ error: 'Supabase не налаштовано на сервері.' });
+    return;
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('id, display_name, rider_profile, onboarding_complete, ai_history_consent, updated_at')
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    res.status(500).json({ error: `Не вдалося завантажити користувачів: ${error.message}` });
+    return;
+  }
+
+  res.json({ users: data ?? [] });
+});
+
+app.patch('/api/admin/users/:userId', async (req: Request, res: Response) => {
+  const account = await getAuthenticatedAdmin(req);
+  if (!account) {
+    res.status(401).json({ error: 'Тільки адміністратор може редагувати профілі користувачів.' });
+    return;
+  }
+  if (!supabaseAdmin) {
+    res.status(503).json({ error: 'Supabase не налаштовано на сервері.' });
+    return;
+  }
+
+  const targetUserId = req.params.userId;
+  const { display_name, rider_profile, onboarding_complete, ai_history_consent } = req.body as {
+    display_name?: string;
+    rider_profile?: Record<string, unknown>;
+    onboarding_complete?: boolean;
+    ai_history_consent?: boolean;
+  };
+
+  const payload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (typeof display_name === 'string') payload.display_name = display_name;
+  if (rider_profile && typeof rider_profile === 'object') payload.rider_profile = rider_profile;
+  if (typeof onboarding_complete === 'boolean') payload.onboarding_complete = onboarding_complete;
+  if (typeof ai_history_consent === 'boolean') payload.ai_history_consent = ai_history_consent;
+
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .update(payload)
+    .eq('id', targetUserId)
+    .select('id, display_name, rider_profile, onboarding_complete, ai_history_consent, updated_at')
+    .single();
+
+  if (error) {
+    res.status(500).json({ error: `Не вдалося оновити профіль користувача: ${error.message}` });
+    return;
+  }
+
+  res.json({ profile: data });
+});
+
+function extractModelSearchQuery(message: string): string {
+  const cleaned = message
+    .replace(/(знайди|пошук|search|find|look up|model|модель|bike|bicycle|байк)/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned || message.trim();
+}
+
+function isLikelyModelSearchRequest(message: string): boolean {
+  const lower = message.toLocaleLowerCase('en-US');
+  return (
+    /(модель|model|bike|bicycle|байк|frame|фрейм|марка|brand)/i.test(lower) &&
+    /(шук|пошук|search|find|look up|інтернет|internet|web|знайди)/i.test(lower)
+  );
+}
+
+async function fetchText(url: string | URL, init?: RequestInit): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    if (!response.ok) throw new Error(`Upstream request failed with status ${response.status}`);
+    return await response.text();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function decodeHtmlEntities(input: string): string {
+  return input
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&nbsp;/gi, ' ');
+}
+
+function stripHtmlTags(value: string): string {
+  return value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+async function searchBikeModelOnline(query: string): Promise<Array<{ title: string; url: string }>> {
+  const normalized = query.trim();
+  if (!normalized) return [];
+
+  const searchUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(`bike model ${normalized}`)}`;
+  const html = await fetchText(searchUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+      'Accept-Language': 'uk-UA,uk;q=0.9,en;q=0.8',
+    },
+  });
+
+  const matches = [...html.matchAll(/<h2 class="result__title">\s*<a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gis)]
+    .map(([, rawUrl, title]) => {
+      const rawDecoded = decodeHtmlEntities(stripHtmlTags(rawUrl || ''));
+      const decodedTitle = decodeHtmlEntities(stripHtmlTags(title || ''));
+      const parsedUrl = rawDecoded.startsWith('//') ? `https:${rawDecoded}` : rawDecoded;
+      let safeUrl = parsedUrl;
+      try {
+        const urlObject = new URL(parsedUrl);
+        const uddg = urlObject.searchParams.get('uddg');
+        if (uddg) {
+          safeUrl = decodeURIComponent(uddg);
+        }
+      } catch {
+        safeUrl = parsedUrl;
+      }
+      return {
+        title: decodedTitle || normalized,
+        url: safeUrl,
+      };
+    })
+    .filter(({ title, url }) => title && url && !url.includes('duckduckgo.com'))
+    .slice(0, 5);
+
+  return matches;
+}
+
+app.get('/api/velovibe/model-search', async (req: Request, res: Response) => {
+  const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  if (!query) {
+    res.status(400).json({ error: 'Потрібно передати параметр q з моделлю велосипеда.' });
+    return;
+  }
+
+  try {
+    const results = await searchBikeModelOnline(query);
+    res.json({ query, source: 'DuckDuckGo HTML', results });
+  } catch (error: unknown) {
+    console.error('Model search failed:', error);
+    res.status(502).json({ error: 'Не вдалося знайти модель у відкритому інтернет-пошуку.' });
+  }
+});
+
 async function fetchJson(url: string | URL, init?: RequestInit): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 35_000);
@@ -334,8 +517,17 @@ app.post('/api/velovibe/chat', async (req: Request, res: Response) => {
     };
     const riderContext = `Контекст профілю райдера (відомості, введені самим користувачем; не є підтвердженим оглядом): ${JSON.stringify(safeProfile)}. Використовуй лише доречні поля, не вигадуй відсутніх значень.`;
 
+    const modelSearchContext = isLikelyModelSearchRequest(message)
+      ? await searchBikeModelOnline(extractModelSearchQuery(message))
+      : [];
+    const webSearchSummary = modelSearchContext.length > 0
+      ? `\nІнтернет-пошук моделей: ${modelSearchContext
+          .map((result, index) => `${index + 1}. ${result.title} — ${result.url}`)
+          .join('\n')}`
+      : '';
+
     if (!aiClient) {
-      res.json({ reply: generateExpertFallback(message) });
+      res.json({ reply: generateExpertFallback(`${message}${webSearchSummary ? `\n${webSearchSummary}` : ''}`) });
       return;
     }
 
@@ -350,7 +542,7 @@ app.post('/api/velovibe/chat', async (req: Request, res: Response) => {
         }
       }
     }
-    contents.push({ role: 'user', parts: [{ text: `${riderContext}\nЗапит райдера: ${message}` }] });
+    contents.push({ role: 'user', parts: [{ text: `${riderContext}${webSearchSummary}\nЗапит райдера: ${message}` }] });
 
     const response = await aiClient.models.generateContent({
       model: 'gemini-3.8-flash',

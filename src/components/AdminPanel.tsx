@@ -18,6 +18,13 @@ interface AdminSpot {
   created_at: string;
 }
 
+interface ProfileUser {
+  id: string;
+  display_name: string;
+  rider_profile: Record<string, unknown>;
+  profileImageUrl?: string;
+}
+
 const SPOT_TYPES: Array<{ value: SpotType; label: string }> = [
   { value: 'bikepark', label: 'Байк-парк' },
   { value: 'pumptrack', label: 'Памптрек' },
@@ -28,10 +35,12 @@ const SPOT_TYPES: Array<{ value: SpotType; label: string }> = [
 
 interface AdminPanelProps {
   userId: string;
+  accessToken: string;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ userId }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ userId, accessToken }) => {
   const [spots, setSpots] = useState<AdminSpot[]>([]);
+  const [users, setUsers] = useState<ProfileUser[]>([]);
   const [name, setName] = useState('');
   const [region, setRegion] = useState('');
   const [latitude, setLatitude] = useState('');
@@ -42,6 +51,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userId }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [userImageDrafts, setUserImageDrafts] = useState<Record<string, string>>({});
+  const [userNameDrafts, setUserNameDrafts] = useState<Record<string, string>>({});
 
   const loadSpots = async () => {
     if (!supabase) {
@@ -63,9 +74,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userId }) => {
     setIsLoading(false);
   };
 
+  const loadUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const result = await response.json() as { users?: Array<{ id: string; display_name?: string; rider_profile?: Record<string, unknown> }>; error?: string };
+      if (!response.ok) {
+        throw new Error(result.error || 'Не вдалося завантажити користувачів.');
+      }
+
+      const mappedUsers = (result.users ?? []).map((profile) => {
+        const riderProfile = (profile.rider_profile ?? {}) as Record<string, unknown>;
+        return {
+          id: profile.id,
+          display_name: profile.display_name || 'Без імені',
+          rider_profile: riderProfile,
+          profileImageUrl: typeof riderProfile.profileImageUrl === 'string' ? riderProfile.profileImageUrl : undefined,
+        } as ProfileUser;
+      });
+      setUsers(mappedUsers);
+      setUserImageDrafts(Object.fromEntries(mappedUsers.map((user) => [user.id, user.profileImageUrl ?? ''])));
+      setUserNameDrafts(Object.fromEntries(mappedUsers.map((user) => [user.id, user.display_name || ''])));
+    } catch (loadUsersError: unknown) {
+      setError(loadUsersError instanceof Error ? loadUsersError.message : 'Не вдалося завантажити користувачів.');
+    }
+  };
+
   useEffect(() => {
     void loadSpots();
-  }, []);
+    void loadUsers();
+  }, [accessToken]);
 
   const addSpot = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -124,6 +163,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userId }) => {
     await loadSpots();
   };
 
+  const saveUserProfile = async (user: ProfileUser) => {
+    const nextName = (userNameDrafts[user.id] ?? user.display_name ?? '').trim();
+    const nextImage = userImageDrafts[user.id]?.trim() ?? '';
+    const existing = user.rider_profile ?? {};
+    const payload = { ...existing, profileImageUrl: nextImage || null };
+
+    const response = await fetch(`/api/admin/users/${user.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        display_name: nextName || 'Без імені',
+        rider_profile: payload,
+      }),
+    });
+    const result = await response.json() as { error?: string };
+    if (!response.ok) {
+      throw new Error(result.error || 'Не вдалося оновити профіль користувача.');
+    }
+    await loadUsers();
+  };
+
   return (
     <section className="cab-card mb-10 space-y-8 p-6 sm:p-8">
       <header className="border-b border-white/[0.06] pb-5">
@@ -147,6 +210,61 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userId }) => {
         <div>
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-white">Підтримка райдерів</h2>
           <SupportChat userId={userId} isAdmin embedded />
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-white/[0.06] bg-[#111118] p-4">
+        <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-white">Фото профілів зареєстрованих користувачів</h2>
+        <div className="space-y-3">
+          {users.length === 0 ? (
+            <p className="text-sm text-slate-400">Користувачі ще не створили профілі.</p>
+          ) : (
+            users.map((profileUser) => (
+              <div key={profileUser.id} className="flex flex-col gap-3 rounded-lg border border-white/[0.06] bg-black/20 p-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={profileUser.profileImageUrl || 'https://placehold.co/80x80/111118/6b7a94?text=RV'}
+                    alt={profileUser.display_name}
+                    className="h-12 w-12 rounded-full object-cover border border-white/[0.08] bg-[#0b0b10]"
+                    onError={(event) => {
+                      event.currentTarget.src = 'https://placehold.co/80x80/111118/6b7a94?text=RV';
+                    }}
+                  />
+                  <div>
+                    <div className="text-sm font-semibold text-white">{profileUser.display_name}</div>
+                    <div className="text-[10px] uppercase tracking-[1.8px] text-[#6b7a94]">{profileUser.id.slice(0, 8)}</div>
+                  </div>
+                </div>
+                <div className="flex flex-1 flex-col gap-2 md:max-w-xl">
+                  <input
+                    type="text"
+                    value={userNameDrafts[profileUser.id] ?? profileUser.display_name ?? ''}
+                    onChange={(event) => setUserNameDrafts((prev) => ({ ...prev, [profileUser.id]: event.target.value }))}
+                    placeholder="Ім'я користувача"
+                    className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white outline-none focus:border-[#E10600]/60"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="url"
+                      value={userImageDrafts[profileUser.id] ?? profileUser.profileImageUrl ?? ''}
+                      onChange={(event) => setUserImageDrafts((prev) => ({ ...prev, [profileUser.id]: event.target.value }))}
+                      placeholder="https://.../avatar.jpg"
+                      className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white outline-none focus:border-[#E10600]/60"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void saveUserProfile(profileUser).catch((saveError: unknown) => {
+                        setError(saveError instanceof Error ? saveError.message : 'Не вдалося зберегти профіль користувача.');
+                      })}
+                      className="inline-flex items-center justify-center rounded-lg bg-[#E10600] px-3 py-2 text-[9px] font-extrabold uppercase tracking-[1.5px] text-white hover:bg-[#b80500]"
+                    >
+                      Зберегти
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

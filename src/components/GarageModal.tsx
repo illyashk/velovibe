@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BIKE_DISCIPLINE_LABELS, RiderProfile, BikeDiscipline } from '../types/velovibe';
+import { BIKE_DISCIPLINE_LABELS, RiderProfile, BikeDiscipline, SuspensionMode } from '../types/velovibe';
 import { X, Check, Bike, Save } from 'lucide-react';
 
 interface GarageModalProps {
@@ -55,6 +55,12 @@ export const GarageModal: React.FC<GarageModalProps> = ({ isOpen, onClose, profi
     }
   };
 
+  const suspensionOptions: Array<{ id: SuspensionMode; label: string; hint: string }> = [
+    { id: 'short', label: 'Коротка / швидка', hint: 'XC / Trail' },
+    { id: 'balanced', label: 'Баланс', hint: 'Trail / Enduro' },
+    { id: 'long', label: 'Довга / стабільна', hint: 'Enduro / DH' },
+  ];
+
   const fields: { label: string; key: keyof RiderProfile; type: string; min?: number; max?: number }[] = [
     { label: 'Нікнейм райдера',    key: 'username',        type: 'text' },
     { label: 'Модель байка / Вилка', key: 'bikeModel',     type: 'text' },
@@ -65,6 +71,7 @@ export const GarageModal: React.FC<GarageModalProps> = ({ isOpen, onClose, profi
     { label: 'Хід аморта (мм)',    key: 'shockTravelMm',   type: 'number', min: 0,  max: 215 },
     { label: 'Тиск переднє (PSI)', key: 'frontTirePsi',    type: 'number', min: 15, max: 60 },
     { label: 'Тиск заднє (PSI)',   key: 'rearTirePsi',     type: 'number', min: 15, max: 60 },
+    { label: 'Посилання на фото профілю', key: 'profileImageUrl', type: 'url' },
   ];
 
   return (
@@ -116,7 +123,17 @@ export const GarageModal: React.FC<GarageModalProps> = ({ isOpen, onClose, profi
                 <button
                   key={d}
                   type="button"
-                  onClick={() => set('discipline', d)}
+                  onClick={() => {
+                    set('discipline', d);
+                    const autoMode: Record<BikeDiscipline, SuspensionMode> = {
+                      XC: 'short',
+                      Trail: 'balanced',
+                      Enduro: 'balanced',
+                      DH: 'long',
+                      Gravel: 'short',
+                    };
+                    set('suspensionMode', autoMode[d]);
+                  }}
                   className={`px-3 py-1.5 text-[9px] font-extrabold uppercase tracking-[1px] transition-all cursor-pointer ${
                     form.discipline === d
                       ? 'bg-[#E10600] text-white clip-bevel-sm'
@@ -124,6 +141,29 @@ export const GarageModal: React.FC<GarageModalProps> = ({ isOpen, onClose, profi
                   }`}
                 >
                   {BIKE_DISCIPLINE_LABELS[d]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[9px] font-bold text-[#6b7a94] uppercase tracking-wider block mb-1.5">
+              Варіація амортизації
+            </label>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {suspensionOptions.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => set('suspensionMode', option.id)}
+                  className={`min-w-[120px] rounded-lg border px-3 py-2 text-left transition-all cursor-pointer ${
+                    form.suspensionMode === option.id
+                      ? 'border-[#E10600]/60 bg-[#E10600]/10 text-white'
+                      : 'border-white/[0.08] bg-[#111118] text-[#9aa3b8] hover:border-white/[0.14] hover:text-white'
+                  }`}
+                >
+                  <div className="text-[9px] font-extrabold uppercase tracking-[1.5px]">{option.label}</div>
+                  <div className="mt-1 text-[8px] uppercase tracking-[1.2px] text-[#6b7a94]">{option.hint}</div>
                 </button>
               ))}
             </div>

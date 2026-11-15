@@ -87,6 +87,15 @@ create policy "Users can update their own profile"
   using ((select auth.uid()) = id)
   with check ((select auth.uid()) = id);
 
+create policy "Admins can read all profiles"
+  on public.profiles for select to authenticated
+  using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+
+create policy "Admins can update all profiles"
+  on public.profiles for update to authenticated
+  using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+
 create policy "Anyone can read verified spots"
   on public.spots for select to anon, authenticated
   using (

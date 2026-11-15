@@ -33,7 +33,9 @@ const isRiderProfile = (value: unknown): value is RiderProfile => {
     typeof profile.rearTirePsi === 'number' &&
     ['XC', 'Trail', 'Enduro', 'DH', 'Gravel'].includes(String(profile.discipline)) &&
     (profile.riderHeightCm === undefined || typeof profile.riderHeightCm === 'number') &&
-    (profile.frameSize === undefined || typeof profile.frameSize === 'string');
+    (profile.frameSize === undefined || typeof profile.frameSize === 'string') &&
+    (profile.profileImageUrl === undefined || typeof profile.profileImageUrl === 'string') &&
+    (profile.suspensionMode === undefined || ['short', 'balanced', 'long'].includes(String(profile.suspensionMode)));
 };
 
 const getSupabaseErrorMessage = (error: unknown): string => {
@@ -315,7 +317,7 @@ export default function App() {
         {activeTab !== 'admin' && <CurrentWeather onAskAi={handleAskAi} />}
         {activeTab === 'cabinet' && activeSection === 'all' && <AdSlot placement="dashboard" />}
 
-        {activeTab === 'admin' && isAdmin && <AdminPanel userId={session.user.id} />}
+        {activeTab === 'admin' && isAdmin && <AdminPanel userId={session.user.id} accessToken={session.access_token} />}
 
         {/* Dynamic View Display */}
         {activeTab === 'cabinet' && activeSection === 'all' && (

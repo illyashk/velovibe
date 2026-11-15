@@ -1,6 +1,6 @@
 import React from 'react';
 import { BIKE_DISCIPLINE_LABELS, RiderProfile } from '../types/velovibe';
-import { Flame, Settings2, MapPin, Bike, Activity } from 'lucide-react';
+import { Flame, Settings2, MapPin, Bike } from 'lucide-react';
 import { sound } from '../utils/audio';
 
 interface CabinetHeaderProps {
@@ -17,12 +17,11 @@ export const CabinetHeader: React.FC<CabinetHeaderProps> = ({
   setActiveSection,
 }) => {
   const tabs = [
-    { id: 'all',        label: 'Огляд кабінету',       icon: Bike,     badge: null },
-    { id: 'spots',      label: 'Мапа місць',             icon: MapPin,   badge: null },
-    { id: 'blueprint',  label: 'Блюпринт байка',        icon: Activity, badge: 'ОГЛЯД' },
-    { id: 'chat',       label: 'AI Воркшоп',            icon: null,     badge: null },
-    { id: 'geometry',   label: 'Лаб. геометрії',        icon: null,     badge: null },
-    { id: 'components', label: 'Сумісність деталей',    icon: null,     badge: null },
+    { id: 'all',        label: 'Огляд кабінету',    icon: Bike,     badge: null },
+    { id: 'spots',      label: 'Мапа місць',        icon: MapPin,   badge: null },
+    { id: 'chat',       label: 'AI Воркшоп',       icon: null,     badge: null },
+    { id: 'geometry',   label: 'Лаб. геометрії',   icon: null,     badge: null },
+    { id: 'components', label: 'Сумісність',      icon: null,     badge: null },
   ];
 
   return (

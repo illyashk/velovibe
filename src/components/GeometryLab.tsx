@@ -21,25 +21,60 @@ interface SliderProps {
   onChange: (v: number) => void;
 }
 
-const Slider: React.FC<SliderProps> = ({ label, unit, value, min, max, step, color, ticks, onChange }) => (
-  <div className="p-3 bg-[#111118] border border-white/[0.04]">
-    <div className="flex justify-between items-center mb-1.5">
-      <span className="text-xs text-white font-bold uppercase tracking-wider">{label}</span>
-      <span className="font-mono-nums font-bold text-sm" style={{ color }}>{value}{unit}</span>
+const Slider: React.FC<SliderProps> = ({ label, unit, value, min, max, step, color, ticks, onChange }) => {
+  const percent = ((value - min) / (max - min)) * 100;
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-[#111118] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-[10px] font-extrabold uppercase tracking-[2px] text-white">{label}</span>
+        <span className="font-mono-nums text-sm font-black" style={{ color }}>{value}{unit}</span>
+      </div>
+
+      <div className="relative pt-3">
+        <div className="absolute left-0 right-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.08),rgba(255,255,255,0.2),rgba(255,255,255,0.08))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]" />
+        <div
+          className="absolute top-1/2 h-2 -translate-y-1/2 rounded-full"
+          style={{
+            left: 0,
+            width: `${percent}%`,
+            background: `linear-gradient(90deg, ${color}, rgba(255,255,255,0.9))`,
+            boxShadow: `0 0 18px ${color}66`,
+          }}
+        />
+        <div className="relative flex h-6 items-center">
+          {ticks.map((tick) => {
+            const tickPercent = ((tick.v - min) / (max - min)) * 100;
+            const isActive = Math.abs(value - tick.v) < (max - min) * 0.05;
+            return (
+              <span
+                key={tick.v}
+                className="absolute top-1/2 h-3 w-px -translate-y-1/2 rounded-full"
+                style={{
+                  left: `${tickPercent}%`,
+                  background: isActive ? color : 'rgba(255,255,255,0.2)',
+                  boxShadow: isActive ? `0 0 10px ${color}` : 'none',
+                }}
+                aria-hidden="true"
+              />
+            );
+          })}
+          <input
+            type="range"
+            min={min} max={max} step={step}
+            value={value}
+            onChange={(e) => onChange(step < 1 ? parseFloat(e.target.value) : parseInt(e.target.value, 10))}
+            className="relative z-10 w-full cursor-pointer bg-transparent accent-[#E10600]"
+            style={{ accentColor: color }}
+          />
+        </div>
+      </div>
+
+      <div className="mt-1.5 flex justify-between text-[9px] font-mono text-[#6b7a94]">
+        {ticks.map((t) => <span key={t.v}>{t.l}</span>)}
+      </div>
     </div>
-    <input
-      type="range"
-      min={min} max={max} step={step}
-      value={value}
-      onChange={(e) => onChange(step < 1 ? parseFloat(e.target.value) : parseInt(e.target.value, 10))}
-      className="w-full cursor-pointer accent-[#E10600]"
-      style={{ accentColor: color }}
-    />
-    <div className="flex justify-between text-[9px] text-[#6b7a94] mt-0.5 font-mono">
-      {ticks.map((t) => <span key={t.v}>{t.l}</span>)}
-    </div>
-  </div>
-);
+  );
+};
 
 const FORK_LEN_MM = 560;
 const FRAME_SCALE = 0.28;
@@ -164,6 +199,31 @@ export const GeometryLab: React.FC<GeometryLabProps> = ({ onAskAi }) => {
   };
 
   const disciplines: BikeDiscipline[] = ['XC', 'Trail', 'Enduro', 'DH', 'Gravel'];
+  const suspensionVariants = [
+    { id: 'short', label: 'Коротка', hint: 'Швидкий лінійний відгук', accent: '#FFC400' },
+    { id: 'balanced', label: 'Баланс', hint: 'Зрівноважений середній хід', accent: '#E10600' },
+    { id: 'long', label: 'Довга', hint: 'Макс стабільність на спусках', accent: '#16A34A' },
+  ] as const;
+  const activeSuspension =
+    geo.discipline === 'XC' || geo.discipline === 'Gravel'
+      ? 'short'
+      : geo.discipline === 'DH'
+        ? 'long'
+        : 'balanced';
+
+  const applySuspensionVariant = (variant: 'short' | 'balanced' | 'long') => {
+    const preset = GEOMETRY_ARCHETYPES[geo.discipline];
+    const mapping = {
+      short: { reachMm: preset.reachMm - 12, stackMm: preset.stackMm - 8, headAngleDeg: preset.headAngleDeg + 0.5 },
+      balanced: { reachMm: preset.reachMm, stackMm: preset.stackMm, headAngleDeg: preset.headAngleDeg },
+      long: { reachMm: preset.reachMm + 12, stackMm: preset.stackMm + 10, headAngleDeg: preset.headAngleDeg - 0.7 },
+    };
+    setGeo((prev) => ({
+      ...prev,
+      ...mapping[variant],
+      wheelbaseMm: Math.round((prev.chainstayMm + (mapping[variant].reachMm + prev.stackMm * 0.18)) * 1.11),
+    }));
+  };
   const spring = { type: 'spring' as const, stiffness: 160, damping: 22 };
 
   return (
@@ -192,6 +252,30 @@ export const GeometryLab: React.FC<GeometryLabProps> = ({ onAskAi }) => {
               {BIKE_DISCIPLINE_LABELS[disc]}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-[2px] text-[#6b7a94]">Варіація амортизації</div>
+        <div className="flex flex-wrap gap-2">
+          {suspensionVariants.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => applySuspensionVariant(option.id)}
+              className={`rounded-full border px-3 py-1.5 text-[9px] font-extrabold uppercase tracking-[1.8px] transition-all cursor-pointer ${
+                activeSuspension === option.id
+                  ? 'border-transparent text-white shadow-[0_0_12px_rgba(225,6,0,0.2)]'
+                  : 'border-white/[0.08] bg-[#111118] text-[#9aa3b8] hover:text-white'
+              }`}
+              style={activeSuspension === option.id ? { background: `linear-gradient(135deg, ${option.accent}, rgba(225,6,0,0.85))` } : undefined}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2 text-[9px] uppercase tracking-[1.3px] text-[#6b7a94]">
+          {suspensionVariants.find((option) => option.id === activeSuspension)?.hint}
         </div>
       </div>
 

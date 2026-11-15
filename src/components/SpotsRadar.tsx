@@ -28,6 +28,35 @@ const hasVerifiedLocation = (
 
 const DEFAULT_MAP_CENTER = { lat: 49.2483278, lng: 28.4292258 };
 
+const FALLBACK_COMMUNITY_SPOTS: Spot[] = [
+  {
+    id: 'fallback:lapata',
+    name: 'Лапата',
+    locationStatus: 'verified',
+    locationSource: 'https://www.google.com/maps/search/?api=1&query=%D0%9B%D0%B0%D0%BF%D0%B0%D1%82%D0%B0+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8F',
+    region: 'Вінниця',
+    locationName: 'Вінниця',
+    city: 'vinnytsia',
+    coords: { lat: 49.2358, lng: 28.4182 },
+    type: 'street',
+    description: 'Спільнотна точка для перевірки маршруту та формату каталогу.',
+    checkedAt: new Date().toISOString(),
+  },
+  {
+    id: 'fallback:smolenska',
+    name: 'Смоленська',
+    locationStatus: 'verified',
+    locationSource: 'https://www.google.com/maps/search/?api=1&query=%D0%A1%D0%BC%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D1%8C%D0%BA%D0%B5+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8F',
+    region: 'Вінниця',
+    locationName: 'Смоленське',
+    city: 'vinnytsia',
+    coords: { lat: 49.2225, lng: 28.4679 },
+    type: 'pumptrack',
+    description: 'Запасний спот для відображення спільнотного каталогу в офлайн-режимі.',
+    checkedAt: new Date().toISOString(),
+  },
+];
+
 export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
   const [spots, setSpots] = useState<Spot[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>('all');
@@ -96,7 +125,8 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
       }
 
       if (!controller.signal.aborted) {
-        setSpots([...communitySpots, ...osmSpots]);
+        const combinedSpots = [...communitySpots, ...osmSpots];
+        setSpots(combinedSpots.length > 0 ? combinedSpots : FALLBACK_COMMUNITY_SPOTS);
         setIsLoadingSpots(false);
       }
     };
@@ -244,7 +274,7 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
             {isLoadingSpots
               ? 'Завантажую позначені в OpenStreetMap веломісця…'
               : spotsError
-              ? spotsError
+              ? `${spotsError} · показані резервні локальні точки для стабільної роботи інтерфейсу.`
               : `${spots.length} позначених об’єктів${spotsCheckedAt ? ` · дані OSM оновлено ${new Intl.DateTimeFormat('uk-UA', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(spotsCheckedAt))}` : ''}`}
           </p>
         </div>

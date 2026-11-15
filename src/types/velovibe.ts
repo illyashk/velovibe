@@ -81,6 +81,8 @@ export interface CompatibilityCheckItem {
   warningNote?: string;
 }
 
+export type SuspensionMode = 'short' | 'balanced' | 'long';
+
 export interface RiderProfile {
   username: string;
   callsign: string;
@@ -93,4 +95,6 @@ export interface RiderProfile {
   shockTravelMm: number;
   frontTirePsi: number;
   rearTirePsi: number;
+  profileImageUrl?: string;
+  suspensionMode?: SuspensionMode;
 }
