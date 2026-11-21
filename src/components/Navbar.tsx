@@ -31,14 +31,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, profile
 
   const navItems = [
     { id: 'cabinet',    label: 'Кабінет',    icon: Layers },
-    { id: 'chat',       label: 'AI Копілот', icon: Sparkles },
-    { id: 'geometry',   label: 'Геометрія',  icon: Navigation },
     { id: 'components', label: 'Сумісність', icon: Wrench },
     { id: 'spots',      label: 'Мапа спотів', icon: Compass },
     ...(isAdmin ? [{ id: 'admin', label: 'Адмінка', icon: ShieldCheck }] : []),
   ];
 
-  const handleNav = (id: string) => {
+  const handleNav = (id: 'cabinet' | 'components' | 'spots' | 'admin') => {
     sound.playShifterClick();
     setActiveTab(id);
     setMobileOpen(false);
@@ -91,7 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, profile
             return (
               <button
                 key={id}
-                onClick={() => handleNav(id)}
+                onClick={() => handleNav(id as 'cabinet' | 'components' | 'spots' | 'admin')}
                 className={`flex items-center gap-1.5 text-xs font-bold tracking-[1.5px] uppercase transition-all duration-200 cursor-pointer py-1 relative ${
                   isActive ? 'text-white' : 'text-[#f2f2fa]/40 hover:text-white/80'
                 }`}
@@ -110,7 +108,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, profile
         <div className="flex items-center gap-2">
           {/* AI CTA */}
           <button
-            onClick={() => { sound.playRatchet(); setActiveTab('chat'); setMobileOpen(false); }}
+            onClick={() => { sound.playRatchet(); setActiveTab('components'); setMobileOpen(false); }}
             className="btn-kras clip-bevel-sm px-3 py-1.5 bg-[#E10600] hover:bg-[#b80500] text-white text-xs font-bold uppercase tracking-[2px] shadow-[0_0_15px_rgba(225,6,0,0.35)] cursor-pointer"
           >
             <Sparkles className="w-3 h-3 mr-1 inline" />
@@ -146,7 +144,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, profile
               return (
                 <button
                   key={id}
-                  onClick={() => handleNav(id)}
+                  onClick={() => handleNav(id as 'cabinet' | 'components' | 'spots' | 'admin')}
                   className={`flex items-center gap-3 px-4 py-3.5 text-sm font-bold tracking-[2px] uppercase transition-all cursor-pointer border ${
                     isActive
                       ? 'bg-[#E10600]/10 border-[#E10600]/40 text-white'

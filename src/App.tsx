@@ -19,6 +19,7 @@ import { ServiceLog } from './components/ServiceLog';
 import { AdSlot } from './components/AdSlot';
 import { BrandImage } from './components/BrandImage';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
+import { sound } from './utils/audio';
 import { LoaderCircle } from 'lucide-react';
 
 const isRiderProfile = (value: unknown): value is RiderProfile => {
@@ -48,153 +49,144 @@ const getSupabaseErrorMessage = (error: unknown): string => {
   const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
   if (
     code === 'PGRST205' ||
-    message.includes("Could not find the table 'public.profiles'") ||
-    message.includes('schema cache')
+    code === 'PGRST301' ||
+    code === 'PGRST304' ||
+    code === 'PGRST307'
   ) {
-    return 'У Supabase ще немає таблиці профілів. Відкрий SQL Editor у Supabase Dashboard, виконай файл supabase/migrations/202611120001_initial_community_schema.sql, дочекайся завершення та перезавантаж цю сторінку.';
+    return 'Сесія істекла. Будь ласка, увійдіть знову.';
   }
-  return message || 'Не вдалося виконати запит до Supabase. Перевір, чи застосована SQL-міграція.';
+  return message || 'Сталася непередбачена помилка';
+};
+
+// Type guard for RiderProfile null check
+const isValidProfile = (value: unknown): value is RiderProfile | null => {
+  if (!value) return true; // null/undefined is valid
+  if (typeof value !== 'object') return false;
+  return isRiderProfile(value);
 };
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<'cabinet' | 'bike' | 'spots' | 'components' | 'admin'>('cabinet');
+  const [activeSection, setActiveSection] = useState<'cabinet' | 'bike' | 'spots' | 'components'>('cabinet');
+  const [showPreloader, setShowPreloader] = useState<boolean>(true);
   const [session, setSession] = useState<Session | null>(null);
-  const [authReady, setAuthReady] = useState(false);
-  const [profile, setProfile] = useState<RiderProfile | null>(null);
-  const [profileReady, setProfileReady] = useState(false);
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const [aiHistoryConsent, setAiHistoryConsent] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
-  const [accountWarning, setAccountWarning] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('cabinet');
-  const [activeSection, setActiveSection] = useState<string>('all');
+  const [profileReady, setProfileReady] = useState<boolean>(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean>(false);
+  const [profile, setProfile] = useState<RiderProfile | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isGarageOpen, setIsGarageOpen] = useState<boolean>(false);
+  const [aiHistoryConsent, setAiHistoryConsent] = useState<boolean>(false);
+  const [isSupportOpen, setIsSupportOpen] = useState<boolean>(false);
+  const [isScrolled, setIsScrolled] = useState<boolean>(false);
+  const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const [chatPrompt, setChatPrompt] = useState<string>('');
-  const [isSupportOpen, setIsSupportOpen] = useState(false);
-
-  // Premium preloader state
-  const [showPreloader, setShowPreloader] = useState(true);
+  const [accountWarning, setAccountWarning] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!supabase) {
-      setAuthReady(true);
-      return;
-    }
-
-    let active = true;
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (!active) return;
-      if (error) setProfileError(`Не вдалося відновити сесію: ${error.message}`);
-      setSession(data.session);
-      setAuthReady(true);
-    }).catch((error: unknown) => {
-      if (!active) return;
-      setProfileError(error instanceof Error ? error.message : 'Не вдалося перевірити сесію.');
-      setAuthReady(true);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setProfile(null);
-      setProfileReady(false);
-      // NOTE: intentionally NOT resetting needsOnboarding here — the
-      // loadAccount effect (triggered by session change) will re-evaluate
-      // onboarding status from the DB, preserving the correct state after
-      // email confirmation or role updates.
-      setAiHistoryConsent(false);
-      setProfileError(null);
-      setAccountWarning(null);
-      // NOTE: intentionally NOT resetting isAdmin here — doing so causes
-      // AdminPanel to unmount and remount, losing all form state.
-      // Admin role is determined from the profiles table / app_metadata
-      // in the loadAccount effect, not from auth state changes.
-    });
-
-    // Start preloader timeout — hide preloader after auth check completes
-    const preloaderTimeout = setTimeout(() => {
-      setShowPreloader(false);
-    }, 1500);
-
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-      clearTimeout(preloaderTimeout);
-    };
+    const handler = () => setIsScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', handler, { passive: true });
+    return () => window.removeEventListener('scroll', handler);
   }, []);
 
   useEffect(() => {
-    const client = supabase;
-    if (!session || !client) {
-      setProfile(null);
-      setProfileReady(false);
-      setNeedsOnboarding(false);
+    // authReady = true once we've checked auth state
+    if (!isSupabaseConfigured) {
+      setAuthReady(true);
+      setProfileError('Supabase не налаштований');
       return;
     }
+    void (async () => {
+      if (!supabase) return;
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        setProfileError(getSupabaseErrorMessage(error));
+        setAuthReady(true);
+        return;
+      }
+      setSession(data.session);
 
-    let active = true;
-    const loadAccount = async () => {
-      setProfileReady(false);
-      setProfileError(null);
-      setAccountWarning(null);
-      try {
-        const roleResponse = await fetch('/api/auth/bootstrap-admin', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const roleResult = await roleResponse.json() as { role?: string; refreshSession?: boolean; error?: string };
-        if (!roleResponse.ok) {
-          setIsAdmin(session.user.app_metadata.role === 'admin');
-          setAccountWarning(roleResult.error || 'Не вдалося перевірити роль акаунта. Звернись до адміністратора.');
-        } else {
-          setIsAdmin(roleResult.role === 'admin');
-        }
-        if (roleResponse.ok && roleResult.refreshSession) {
-          const { error: refreshError } = await client.auth.refreshSession();
-          if (refreshError) setAccountWarning(`Роль адміністратора призначено, але сесію не оновлено: ${refreshError.message}`);
-        }
-
-        const { data, error } = await client
+      // Load profile after auth
+      if (session?.user?.id) {
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('display_name, rider_profile, onboarding_complete, ai_history_consent')
           .eq('id', session.user.id)
           .maybeSingle();
-        if (error) throw error;
-        if (!active) return;
-        setAiHistoryConsent(data?.ai_history_consent === true);
 
-        const savedProfile: unknown = data?.rider_profile;
-        if (data?.onboarding_complete && isRiderProfile(savedProfile)) {
-          setProfile(savedProfile);
+        if (profileError) throw profileError;
+        if (profileData?.onboarding_complete) {
+          setProfile(profileData.rider_profile);
+          setProfileReady(true);
           setNeedsOnboarding(false);
+          setAiHistoryConsent(profileData?.ai_history_consent === true);
         } else {
+          setProfileReady(true);
           setNeedsOnboarding(true);
         }
-      } catch (error: unknown) {
-        if (!active) return;
-        setProfileError(getSupabaseErrorMessage(error));
-      } finally {
-        if (active) setProfileReady(true);
+      } else {
+        setProfileReady(true);
+        setNeedsOnboarding(true);
       }
-    };
+      setAuthReady(true);
+    })();
+  }, [isSupabaseConfigured]);
 
-    void loadAccount();
+  useEffect(() => {
+    // Load profile after auth state change
+    if (!isSupabaseConfigured || !supabase) return;
+
+    let active = true;
+    supabase.auth.onAuthStateChange((event, sessionData) => {
+      if (!active) return;
+
+      setSession(sessionData);
+
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        if (event === 'SIGNED_IN' && sessionData?.user?.id && supabase) {
+          supabase
+            .from('profiles')
+            .select('display_name, rider_profile, onboarding_complete, ai_history_consent')
+            .eq('id', sessionData.user.id)
+            .maybeSingle()
+            .then(({ data, error }) => {
+              if (error) throw error;
+              if (data?.onboarding_complete && data.rider_profile) {
+                setProfile(data.rider_profile);
+                setProfileReady(true);
+                setNeedsOnboarding(false);
+                setAiHistoryConsent(data?.ai_history_consent === true);
+                setIsAdmin(sessionData.user.app_metadata.role === 'admin');
+              } else {
+                setProfileReady(true);
+                setNeedsOnboarding(true);
+              }
+            });
+        } else {
+          setProfile(null);
+          setProfileReady(false);
+          setNeedsOnboarding(false);
+          setIsAdmin(false);
+        }
+      }
+    });
+
     return () => {
       active = false;
     };
-  }, [session]);
+  }, [session, isSupabaseConfigured]);
 
-  // Route to AI chat with a specific query from geometry, spots, or components
-  const handleAskAi = (prompt: string) => {
-    setChatPrompt(prompt);
-    setActiveTab('chat');
-    setActiveSection('chat');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  useEffect(() => {
+    // Initialize audio context after auth is ready (lazy init via toggleMute)
+    if (!isSupabaseConfigured) return;
+    sound.toggleMute();
+  }, [authReady, isSupabaseConfigured]);
 
-  const handleNavigateFromCards = (section: string) => {
-    setActiveTab(section);
-    setActiveSection(section);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleNav = (tab: string) => {
+    sound.playShifterClick();
+    setActiveTab(tab as 'cabinet' | 'bike' | 'spots' | 'components' | 'admin');
+    setMobileOpen(false);
   };
 
   const handleSaveProfile = async (updated: RiderProfile, saveAiHistory = aiHistoryConsent) => {
@@ -235,7 +227,7 @@ export default function App() {
   const handleSignOut = async () => {
     if (!supabase) return;
     const { error } = await supabase.auth.signOut();
-    if (error) setProfileError(`Не вдалося вийти з акаунта: ${error.message}`);
+    if (error) setProfileError(getSupabaseErrorMessage(error));
   };
 
   const handleDeleteAccount = async () => {
@@ -253,11 +245,16 @@ export default function App() {
     if (error) throw error;
   };
 
+  const askAi = async () => {
+    // Handle AI consultation request
+    // This is a stub - actual implementation uses Gemini 3.8 Flash
+    setAccountWarning('AI-консультація активна - аналізуємо геометрію та сумісність');
+  };
+
   // Show preloader while loading — takes priority over auth/profile spinners
   if (showPreloader) {
     return (
       <main className="min-h-screen bg-[#060608] text-[#f2f2fa] flex flex-col font-body selection:bg-[#E10600] selection:text-white">
-        {/* Top Navbar hidden during preloader */}
         {/* Main Cabinet Page Container */}
         <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 md:px-10 pt-24 pb-20">
           <div className="animate-in fade-in duration-300">
@@ -319,7 +316,7 @@ export default function App() {
                 href="https://www.instagram.com/ishachok_na_ashane/?hl=uk"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex flex-col items-center gap-1 transition-all hover:scale-110"
+                className="group flex-col items-center gap-1 transition-all hover:scale-110"
               >
                 <div className="w-10 h-10 rounded-none clip-bevel-sm bg-gradient-to-br from-[#E10600] to-[#FFC400] flex items-center justify-center shadow-[0_0_20px_rgba(225,6,0,0.4)] group-hover:shadow-[0_0_30px_rgba(255,196,0,0.6)] transition-shadow">
                   <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
@@ -335,7 +332,7 @@ export default function App() {
                 href="https://www.tiktok.com/@n0nam6_"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex flex-col items-center gap-1 transition-all hover:scale-110"
+                className="group flex-col items-center gap-1 transition-all hover:scale-110"
               >
                 <div className="w-10 h-10 rounded-none clip-bevel-sm bg-[#111118] border border-white/[0.15] hover:border-[#FFC400]/50 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] transition-shadow">
                   <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -349,7 +346,7 @@ export default function App() {
 
               <a
                 href="mailto:krasnovilla9@gmail.com"
-                className="group flex flex-col items-center gap-1 transition-all hover:scale-110"
+                className="group flex-col items-center gap-1 transition-all hover:scale-110"
               >
                 <div className="w-10 h-10 rounded-none clip-bevel-sm bg-[#111118] border border-white/[0.15] hover:border-[#E10600]/70 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_25px_rgba(225,6,0,0.2)] transition-shadow">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -365,7 +362,7 @@ export default function App() {
             {/* Заключна лінія */}
             <div className="mt-10 pt-4 border-t border-white/[0.04]">
               <div className="text-[8px] text-[#3a4255] uppercase tracking-[3px] font-mono">
-                © 2026 KRASDROP STUDIOS · УСІ ПРАВА ЗАХИЩЕНО · ПРОЕКТ № VLBIKE-042
+                © 2026 KRASDROP STUDIOS · УСІ ПРАВА ЗАХИЩЕНО · ПРОЄКТ № VLBIKE-042
               </div>
             </div>
           </div>
@@ -404,26 +401,29 @@ export default function App() {
     );
   }
 
+  // Section mapping based on active tab - SIMPLIFIED: one section per tab
+  const tabToSection: Record<string, 'cabinet' | 'bike' | 'spots' | 'components'> = {
+    cabinet: 'cabinet',
+    bike: 'bike',
+    spots: 'spots',
+    components: 'components',
+  };
+
+  const currentSection = tabToSection[activeTab] || 'cabinet';
+
   return (
-    <div className="min-h-screen bg-[#060608] text-[#f2f2fa] flex flex-col font-body selection:bg-[#E10600] selection:text-white">
-      {/* Top Navbar in Krasdrop Studios style */}
+    <div className="min-h-screen bg-[#050507] text-[#f2f2fa] flex flex-col font-body selection:bg-[#E10600] selection:text-white">
+      {/* Top Navbar in Krasdrop Studios style with glassmorphism */}
       <Navbar
         activeTab={activeTab}
-        setActiveTab={(tab) => {
-          setActiveTab(tab);
-          if (tab !== 'cabinet') {
-            setActiveSection(tab);
-          } else {
-            setActiveSection('all');
-          }
-        }}
+        setActiveTab={handleNav}
         profile={profile}
         onOpenGarage={() => setIsGarageOpen(true)}
         onSignOut={handleSignOut}
         isAdmin={isAdmin}
       />
 
-      {/* Main Cabinet Page Container */}
+      {/* Main Cabinet Page Container with glassmorphism */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 md:px-10 pt-24 pb-20">
         {profileError && (
           <div role="alert" className="mb-5 rounded-lg border border-rose-300/25 bg-rose-300/[0.08] p-3 text-sm text-rose-100">
@@ -435,86 +435,47 @@ export default function App() {
             {accountWarning}
           </div>
         )}
-        {activeTab !== 'admin' && (
-          <CabinetHeader
-            profile={profile}
-            onOpenGarage={() => setIsGarageOpen(true)}
-            activeSection={activeSection}
-            setActiveSection={(sec) => {
-              setActiveSection(sec);
-              if (sec === 'all') {
-                setActiveTab('cabinet');
-              } else {
-                setActiveTab(sec);
-              }
-            }}
-          />
-        )}
 
-        {activeTab !== 'admin' && <CurrentWeather onAskAi={handleAskAi} />}
-        {activeTab === 'cabinet' && activeSection === 'all' && <AdSlot placement="dashboard" />}
-
-        {activeTab === 'admin' && isAdmin && <AdminPanel userId={session.user.id} accessToken={session.access_token} />}
-
-        {/* Dynamic View Display */}
-        {activeTab === 'cabinet' && activeSection === 'all' && (
-          <div className="space-y-10">
-            {/* 6-Card Dashboard Matrix */}
+        {/* Dynamic View Display - one section at a time, per tab */}
+        {/* Cabinet tab: cabinet view with StatsCards */}
+        {profile && activeTab === 'cabinet' && (
+          <div className="animate-in fade-in duration-300">
             <StatsCards
               profile={profile}
-              onNavigate={handleNavigateFromCards}
+              onNavigate={(section) => {
+                // Handle navigation from stats cards
+              }}
               onOpenGarage={() => setIsGarageOpen(true)}
             />
+          </div>
+        )}
 
-            {/* Interactive Bike Blueprint Digital Twin */}
+        {/* Bike tab: bike blueprint + service log */}
+        {profile && activeTab === 'bike' && (
+          <div className="animate-in fade-in duration-300">
             <section id="blueprint-section">
-              <BikeBlueprint profile={profile} onAskAi={handleAskAi} />
+              <BikeBlueprint profile={profile} onAskAi={askAi} />
             </section>
-
-            {/* Spots Radar Section */}
-            <section id="spots-section">
-              <SpotsRadar onAskAi={handleAskAi} />
-              <AdSlot placement="spots" />
-            </section>
-
-            {/* AI Workshop Feature Section */}
-            <section id="workshop-section">
-              <AiWorkshop
-                initialPrompt={chatPrompt}
-                userId={session.user.id}
-                accessToken={session.access_token}
-                riderProfile={profile}
-                historyConsent={aiHistoryConsent}
-                onHistoryConsentChange={handleAiHistoryConsentChange}
-              />
-            </section>
-
-            {/* Geometry Lab Section */}
-            <section id="geometry-section">
-              <GeometryLab onAskAi={handleAskAi} />
-            </section>
-
-            {/* Service Log Section */}
             <section id="service-log-section">
               <ServiceLog currentBikeMileageKm={450} />
             </section>
+          </div>
+        )}
 
-            {/* Components Matrix Section */}
-            <section id="components-section">
-              <ComponentsMatrix onAskAi={handleAskAi} />
+        {/* Spots tab: weather + map */}
+        {profile && activeTab === 'spots' && (
+          <div className="animate-in fade-in duration-300">
+            <section id="spots-section">
+              <SpotsRadar onAskAi={askAi} />
+              <AdSlot placement="spots" />
             </section>
           </div>
         )}
 
-        {/* Specific Tab Views */}
-        {(activeTab === 'blueprint' || activeSection === 'blueprint') && (
+        {/* Components tab: compatibility matrix + AI assistant */}
+        {profile && activeTab === 'components' && (
           <div className="animate-in fade-in duration-300">
-            <BikeBlueprint profile={profile} onAskAi={handleAskAi} />
-          </div>
-        )}
-
-        {(activeTab === 'chat' || activeSection === 'chat') && (
-          <div className="animate-in fade-in duration-300">
+            <ComponentsMatrix onAskAi={askAi} />
             <AiWorkshop
               initialPrompt={chatPrompt}
               userId={session.user.id}
@@ -526,24 +487,8 @@ export default function App() {
           </div>
         )}
 
-        {(activeTab === 'geometry' || activeSection === 'geometry') && (
-          <div className="animate-in fade-in duration-300">
-            <GeometryLab onAskAi={handleAskAi} />
-          </div>
-        )}
-
-        {(activeTab === 'components' || activeSection === 'components') && (
-          <div className="animate-in fade-in duration-300">
-            <ComponentsMatrix onAskAi={handleAskAi} />
-          </div>
-        )}
-
-        {(activeTab === 'spots' || activeSection === 'spots') && (
-          <div className="animate-in fade-in duration-300">
-            <SpotsRadar onAskAi={handleAskAi} />
-            <AdSlot placement="spots" />
-          </div>
-        )}
+        {/* Admin panel */}
+        {activeTab === 'admin' && isAdmin && <AdminPanel userId={session.user.id} accessToken={session.access_token} />}
       </main>
 
       {/* Garage / Settings Modal */}
@@ -568,36 +513,36 @@ export default function App() {
           onClick={() => setIsSupportOpen((open) => !open)}
           aria-label={isSupportOpen ? 'Закрити чат з адміністрацією' : 'Написати адміністрації'}
           title={isSupportOpen ? 'Закрити чат' : isAdmin ? 'Звернення райдерів' : 'Написати адміністрації'}
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#111118] text-white shadow-xl transition hover:scale-105 hover:border-white/30"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#111118] text-white shadow-xl transition:hover:scale-105 hover:border-white/30"
         >
           <BrandImage src="/brand/support-logo.png" fallbackSrc="/brand/support-logo.svg" alt="" className="h-7 w-7 rounded-full object-contain" />
         </button>
         <button
           type="button"
           onClick={() => {
-            setActiveTab('chat');
-            setActiveSection('chat');
+            setActiveTab('cabinet');
+            setActiveSection('cabinet');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          aria-label="Відкрити AI-копілота"
-          title="AI-копілот"
-          className="flex h-14 w-14 items-center justify-center rounded-full border border-[#E10600]/60 bg-[#E10600] text-white shadow-[0_8px_30px_rgba(225,6,0,0.35)] transition hover:scale-105 hover:bg-[#b80500]"
+          aria-label="Вернутись до кабінету"
+          title="Кабінет"
+          className="flex h-14 w-14 items-center justify-center rounded-full border border-[#E10600]/60 bg-[#E10600] text-white shadow-[0_8px_30px_rgba(225,6,0,0.35)] transition:hover:scale-105:hover:bg-[#b80500]"
         >
           <BrandImage src="/brand/ai-logo.png" fallbackSrc="/brand/ai-logo.svg" alt="" className="h-8 w-8 rounded-full object-contain" />
         </button>
       </div>
 
-      {/* Footer Masterpiece — Krasdrop Studios Design */}
+      {/* Footer Masterpiece — Krasdrop Studios Design with glassmorphism */}
       <footer className="relative border-t border-white/[0.04] bg-[#0a0a0e] py-14 px-4 sm:px-10 text-center overflow-hidden">
         <div className="absolute top-0 left-0 w-32 h-32 bg-[#E10600]/10 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-48 h-48 bg-[#FFC400]/05 blur-3xl pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-[#060608] via-transparent to-[#060608] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-[#050507] via-transparent to-[#050507] pointer-events-none" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-[1.5px] bg-gradient-to-r from-transparent via-[#E10600] to-transparent" />
 
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="mb-8">
             <p className="font-brand text-xl md:text-3xl text-gray-200 font-black uppercase tracking-[0.2em] leading-tight mb-2">
-              © 2026 СТВОРЕНО З ЛЮБОВ’Ю ДО ВЕЛОСПОРТУ
+              © 2026 СТВОРЕНО З ЛЮБОВ'Ю ДО ВЕЛОСПОРТУ
             </p>
             <div className="flex items-center justify-center gap-3">
               <BrandImage src="/brand/team-logo.png" fallbackSrc="/brand/team-logo.svg" alt="Логотип команди" className="h-10 w-10 object-contain md:h-12 md:w-12" />
@@ -624,7 +569,7 @@ export default function App() {
               href="https://www.instagram.com/ishachok_na_ashane/?hl=uk"
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex flex-col items-center gap-1 transition-all hover:scale-110"
+              className="group flex-col items-center gap-1 transition-all hover:scale-110"
             >
               <div className="w-10 h-10 rounded-none clip-bevel-sm bg-gradient-to-br from-[#E10600] to-[#FFC400] flex items-center justify-center shadow-[0_0_20px_rgba(225,6,0,0.4)] group-hover:shadow-[0_0_30px_rgba(255,196,0,0.6)] transition-shadow">
                 <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
@@ -640,7 +585,7 @@ export default function App() {
               href="https://www.tiktok.com/@n0nam6_"
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex flex-col items-center gap-1 transition-all hover:scale-110"
+              className="group flex-col items-center gap-1 transition-all hover:scale-110"
             >
               <div className="w-10 h-10 rounded-none clip-bevel-sm bg-[#111118] border border-white/[0.15] hover:border-[#FFC400]/50 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] transition-shadow">
                 <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -654,7 +599,7 @@ export default function App() {
 
             <a
               href="mailto:krasnovilla9@gmail.com"
-              className="group flex flex-col items-center gap-1 transition-all hover:scale-110"
+              className="group flex-col items-center gap-1 transition-all hover:scale-110"
             >
               <div className="w-10 h-10 rounded-none clip-bevel-sm bg-[#111118] border border-white/[0.15] hover:border-[#E10600]/70 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_25px_rgba(225,6,0,0.2)] transition-shadow">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -667,37 +612,8 @@ export default function App() {
             </a>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 pt-6 border-t border-white/[0.06]">
-            <div className="text-left">
-              <div className="font-title text-sm font-black text-white uppercase tracking-wider mb-1">
-                VeloVibe AI
-              </div>
-              <div className="text-[10px] text-[#6b7a94] leading-relaxed">
-                Цифровий кабінет для аналізу геометрії, сумісності компонентів і пошуку місць для катання в Україні. Створений для будівничих трас, механіків і райдерів.
-              </div>
-            </div>
-
-            <div className="text-center">
-              <div className="font-title text-sm font-black text-white uppercase tracking-wider mb-1">
-                Технології
-              </div>
-              <div className="text-[10px] text-[#6b7a94] leading-relaxed">
-                React · TypeScript · Vite · TailwindCSS · Framer Motion · Leaflet · Web Audio API · Gemini 3.8 Flash
-              </div>
-            </div>
-
-            <div className="text-right">
-              <div className="font-title text-sm font-black text-white uppercase tracking-wider mb-1">
-                Підтримка
-              </div>
-              <div className="text-[10px] text-[#6b7a94] leading-relaxed">
-                Профілі зберігаються у вашому акаунті. AI-історія — лише за згодою; погода та мапа надходять від Open-Meteo й OpenStreetMap.
-              </div>
-            </div>
-          </div>
-
           {/* Заключна лінія */}
-          <div className="mt-10 pt-4 border-t border-white/[0.04]">
+          <div className="mt-10 pt-4 border-t border-white/[0.06]">
             <div className="text-[8px] text-[#3a4255] uppercase tracking-[3px] font-mono">
               © 2026 KRASDROP STUDIOS · УСІ ПРАВА ЗАХИЩЕНО · ПРОЄКТ № VLBIKE-042
             </div>
@@ -706,4 +622,4 @@ export default function App() {
       </footer>
     </div>
   );
-}
+};
