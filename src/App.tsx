@@ -262,13 +262,27 @@ export default function App() {
         <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 md:px-10 pt-24 pb-20">
           <div className="animate-in fade-in duration-300">
             <div className="preloader" id="preloader">
-              <div className="preloader-logo" style={{ width: '112px', height: '112px', borderRadius: '9999px', border: '3px solid var(--red)', boxShadow: '0 0 25px rgba(225, 6, 0, 0.5)', background: 'var(--dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span className="preloader-logo-text" style={{ fontFamily: "'Sprintura', 'Russo One', 'Chakra Petch', sans-serif", fontWeight: 700, fontSize: '24px', color: 'var(--white)' }}>Velo</span>
+              <div style={{ width: '112px', height: '112px', borderRadius: '9999px', overflow: 'hidden', border: '2px solid #EF4444', boxShadow: '0 0 30px rgba(239, 68, 68, 0.55)', background: 'var(--dark)' }}>
+                <img src="/brand/site-logo.png" alt="VELOVIBE" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
-              <div className="preloader-text">VELOVIBE AI</div>
-              <div className="preloader-progress">
-                <span className="preloader-progress-percentage">0%</span>
-                <div className="preloader-progress-bar" />
+
+              {/* Headline: VELO + VIBE in Sprintura */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <span style={{ color: '#FFFFFF', fontFamily: "'Sprintura', sans-serif", fontSize: '2.25rem', letterSpacing: '0.08em', lineHeight: 1 }}>VELO</span>
+                <span style={{ color: '#EF4444', fontFamily: "'Sprintura', sans-serif", fontSize: '2.25rem', letterSpacing: '0.08em', lineHeight: 1 }}>VIBE</span>
+              </div>
+
+              {/* Subheader: KRASDROP STUDIOS */}
+              <div style={{ fontSize: '0.75rem', letterSpacing: '0.35em', color: '#9CA3AF', textTransform: 'uppercase' }}>KRASDROP STUDIOS</div>
+
+              {/* Progress bar + percentage counter */}
+              <div style={{ width: '240px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {/* Progress bar */}
+                <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '9999px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: 'linear-gradient(90deg, #DC2626, #F97316, #FACC15)', width: '0%', transition: 'width 1s ease-out' }} />
+                </div>
+                {/* Percentage counter */}
+                <span style={{ fontFamily: "'Sprintura', sans-serif", color: '#FACC15', fontSize: '0.85rem' }}>0%</span>
               </div>
             </div>
           </div>
