@@ -73,69 +73,45 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, profile
           </div>
         </button>
 
-        {/* Desktop Nav */}
-        <ul className="hidden md:flex items-center gap-5 lg:gap-7 list-none">
+        {/* Left: Logo + KRASDROP STUDIOS */}
+        <button
+          onClick={() => handleNav('cabinet')}
+          className="flex items-center gap-2 cursor-pointer focus:outline-none"
+        >
+          <div className="w-8 h-8 rounded-full border border-[#E10600]/60 bg-[#11090A] flex items-center justify-center shadow-[0_0_15px_rgba(225,6,0,0.4)] group-hover:scale-105 group-hover:shadow-[0_0_25px_rgba(225,6,0,0.6)] transition-all duration-200">
+            <BrandImage src="/brand/site-logo.png" fallbackSrc="/brand/site-logo.svg" alt="" className="h-8 w-8 rounded-full object-contain" />
+          </div>
+          <span className="font-brand text-xs font-black tracking-[0.3em] text-[#E10600]">KRASDROP STUDIOS</span>
+        </button>
+
+        {/* Center: Equal nav row */}
+        <div className="hidden md:flex items-center gap-0 lg:gap-2 list-none">
           {navItems.map(({ id, label, icon: Icon }) => {
             const isActive = activeTab === id;
             return (
-              <li key={id}>
-                <button
-                  onClick={() => handleNav(id)}
-                  className={`flex items-center gap-1.5 text-[10px] font-bold tracking-[2px] uppercase transition-all duration-200 cursor-pointer py-1 relative ${
-                    isActive ? 'text-white' : 'text-[#f2f2fa]/35 hover:text-white/80'
-                  }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#E10600]' : 'text-current'}`} />
-                  <span>{label}</span>
-                  {isActive && (
-                    <span className="absolute -bottom-1 left-0 right-0 h-[2px] bg-gradient-to-r from-[#E10600] to-transparent" />
-                  )}
-                </button>
-              </li>
+              <button
+                key={id}
+                onClick={() => handleNav(id)}
+                className={`flex items-center gap-1.5 text-xs font-bold tracking-[1.5px] uppercase transition-all duration-200 cursor-pointer py-1 relative ${
+                  isActive ? 'text-white' : 'text-[#f2f2fa]/40 hover:text-white/80'
+                }`}
+              >
+                <Icon className={`w-3 h-3 ${isActive ? 'text-[#E10600]' : 'text-current'}`} />
+                <span>{label}</span>
+                {isActive && (
+                  <span className="absolute -bottom-1 left-0 right-0 h-[1.5] bg-gradient-to-r from-[#E10600] to-transparent" />
+                )}
+              </button>
             );
           })}
-        </ul>
+        </div>
 
-        {/* Right Zone */}
+        {/* Right Zone: accent button + profile */}
         <div className="flex items-center gap-2">
-          {/* Sound toggle */}
-          <button
-            onClick={handleToggleSound}
-            title={isMuted ? 'Увімкнути звук' : 'Вимкнути звук'}
-            className={`p-2 border transition-all duration-200 cursor-pointer ${
-              isMuted
-                ? 'bg-[#0b0b10] border-white/[0.05] text-[#3a4255] hover:border-white/[0.15] hover:text-[#6b7a94]'
-                : 'bg-[#FFC400]/10 border-[#FFC400]/30 text-[#FFC400] hover:bg-[#FFC400]/20'
-            }`}
-          >
-            {isMuted
-              ? <VolumeX className="w-3.5 h-3.5" />
-              : <Volume2 className="w-3.5 h-3.5" />
-            }
-          </button>
-
-          {/* Profile chip */}
-          <button
-            onClick={() => { sound.playShifterClick(); onOpenGarage(); }}
-            className="hidden sm:flex items-center gap-2.5 p-1 pr-3 bg-[#0b0b10] border border-white/[0.05] hover:border-white/[0.18] transition-all duration-200 cursor-pointer group"
-          >
-            <div className="w-7 h-7 bg-gradient-to-br from-[#E10600] to-[#500000] clip-bevel-sm flex items-center justify-center text-white font-title text-sm font-bold">
-              {profile.username.charAt(0)}
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="text-[10px] font-extrabold text-white tracking-[1px] uppercase group-hover:text-[#FFC400] transition-colors">
-                {profile.username}
-              </span>
-              <span className="text-[8px] text-[#6b7a94] tracking-[1.5px] uppercase">
-                {BIKE_DISCIPLINE_LABELS[profile.discipline]} · {profile.riderWeightKg} кг
-              </span>
-            </div>
-          </button>
-
           {/* AI CTA */}
           <button
             onClick={() => { sound.playRatchet(); setActiveTab('chat'); setMobileOpen(false); }}
-            className="btn-kras clip-bevel-sm px-3.5 py-2 bg-[#E10600] hover:bg-[#b80500] text-white text-[9px] font-extrabold tracking-[2px] uppercase shadow-[0_0_20px_rgba(225,6,0,0.35)] cursor-pointer"
+            className="btn-kras clip-bevel-sm px-3 py-1.5 bg-[#E10600] hover:bg-[#b80500] text-white text-xs font-bold uppercase tracking-[2px] shadow-[0_0_15px_rgba(225,6,0,0.35)] cursor-pointer"
           >
             <Sparkles className="w-3 h-3 mr-1 inline" />
             <span className="hidden sm:inline">AI Запит</span>
@@ -146,17 +122,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, profile
             onClick={onSignOut}
             title="Вийти з акаунта"
             aria-label="Вийти з акаунта"
-            className="p-2 text-slate-400 transition-colors hover:bg-white/[0.05] hover:text-white"
+            className="p-1.5 bg-[#0b0b10] border border-white/[0.04] hover:border-white/[0.12] transition-colors cursor-pointer rounded-full"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-3.5 w-3.5" />
           </button>
 
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen((v) => !v)}
-            className="md:hidden p-2 bg-[#0b0b10] border border-white/[0.06] text-white cursor-pointer"
+            className="md:hidden p-1.5 bg-[#0b0b10] border border-white/[0.04] text-white cursor-pointer"
           >
-            {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {mobileOpen ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
           </button>
         </div>
       </nav>

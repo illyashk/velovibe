@@ -13,7 +13,8 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ profile, onNavigate, onO
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mb-10">
 
-      {/* CARD 1: Rider profile */}
+      {/* CARD 1: Rider profile - numbered 01 */}
+      <div className="cab-card p-6 sm:p-8 flex flex-col justify-between corner-number">01</div>
       <div className="cab-card p-6 sm:p-8 flex flex-col justify-between">
         <div>
           <div className="text-[10px] font-extrabold text-[#6b7a94] uppercase tracking-[3px] mb-5 flex items-center justify-between">
@@ -43,7 +44,8 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ profile, onNavigate, onO
         </button>
       </div>
 
-      {/* CARD 2: Drivetrain health */}
+      {/* CARD 2: Drivetrain health - numbered 02 */}
+      <div className="cab-card p-6 sm:p-8 flex flex-col justify-between corner-number">02</div>
       <div className="cab-card p-6 sm:p-8 flex flex-col justify-between">
         <div>
           <div className="text-[10px] font-extrabold text-[#6b7a94] uppercase tracking-[3px] mb-5 flex items-center justify-between">
@@ -70,7 +72,8 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ profile, onNavigate, onO
         </button>
       </div>
 
-      {/* CARD 3: Suspension & Tire Pressure */}
+      {/* CARD 3: Suspension & Tire Pressure - numbered 03 */}
+      <div className="cab-card p-6 sm:p-8 flex flex-col justify-between corner-number">03</div>
       <div className="cab-card p-6 sm:p-8 flex flex-col justify-between">
         <div>
           <div className="text-[10px] font-extrabold text-[#6b7a94] uppercase tracking-[3px] mb-5 flex items-center justify-between">
@@ -98,7 +101,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ profile, onNavigate, onO
           </div>
 
           <p className="text-[#9aa3b8] text-xs leading-relaxed">
-            Тиск збережений у профілі, це не рекомендація. Враховуй покришки, обід, масу райдера та манометр.
+            Тиск збережений у профілі, це не рекомендація. Враховуй покришки, обід, маса райдера та манометр.
           </p>
         </div>
 
@@ -111,12 +114,13 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ profile, onNavigate, onO
         </button>
       </div>
 
-      {/* CARD 4: Trail Radar */}
+      {/* CARD 4: Trail Radar - numbered 04 with category badge */}
+      <div className="cab-card p-6 sm:p-8 flex flex-col justify-between corner-number">04</div>
       <div className="cab-card p-6 sm:p-8 flex flex-col justify-between">
         <div>
           <div className="text-[10px] font-extrabold text-[#6b7a94] uppercase tracking-[3px] mb-5 flex items-center justify-between">
             <span>📍 Веломісця на мапі</span>
-            <span className="text-[#FFC400] text-[9px] font-bold">OPENSTREETMAP</span>
+            <span className="text-[#FFC400] text-[9px] font-bold uppercase text-[8px] category-badge">OPENSTREETMAP</span>
           </div>
 
           <h3 className="font-title text-3xl font-extrabold text-white uppercase tracking-[1px] mb-1 leading-none">
@@ -127,7 +131,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ profile, onNavigate, onO
           </p>
 
           <p className="text-[#9aa3b8] text-xs leading-relaxed">
-            Показуємо велооб’єкти, позначені в OpenStreetMap. Їх наявність, доступ і стан трас не перевіряються на місцевості.
+            Показуємо велооб'єкти, позначені в OpenStreetMap. Їх наявність, доступ і стан трас не перевіряються на місцевості.
           </p>
         </div>
 
@@ -139,7 +143,8 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ profile, onNavigate, onO
         </button>
       </div>
 
-      {/* CARD 5: Safety Checklist */}
+      {/* CARD 5: Safety Checklist - numbered 05 */}
+      <div className="cab-card p-6 sm:p-8 flex flex-col justify-between corner-number">05</div>
       <div className="cab-card p-6 sm:p-8 flex flex-col justify-between">
         <div>
           <div className="text-[10px] font-extrabold text-[#6b7a94] uppercase tracking-[3px] mb-4 flex items-center justify-between">
@@ -149,7 +154,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ profile, onNavigate, onO
 
           <ul className="space-y-2.5">
             {[
-              'Оглянь раму, вилку, колеса й покришки на пошкодження.',
+              'Оглянь раму, вилку, колеса й krytyшки на пошкодження.',
               'Перевір фіксацію коліс і моменти затягування за мануалом.',
               'Переконайся, що гальма працюють і ротори чисті.',
               'Перевір тиск за своїми умовами та обмеженнями виробника.',
@@ -161,15 +166,20 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ profile, onNavigate, onO
               </li>
             ))}
           </ul>
+
+          <div className="mt-5 pt-3 border-t border-white/[0.04] text-[9px] text-[#3a4255] tracking-[1.5px] uppercase font-mono">
+            Якщо є пошкодження або sumніви — не виїжджай до огляду механіком.
+          </div>
         </div>
 
-        <div className="mt-5 pt-3 border-t border-white/[0.04] text-[9px] text-[#3a4255] tracking-[1.5px] uppercase font-mono">
+        <div className="mt-5 pt-3 border-t border-white/[0.06] text-[9px] text-[#3a4255] tracking-[1.5px] uppercase font-mono">
           Якщо є пошкодження або сумніви — не виїжджай до огляду механіком.
         </div>
       </div>
 
-      {/* CARD 6: Quick Actions */}
-      <div className="cab-card p-6 sm:p-8 flex flex-col justify-between bg-gradient-to-br from-[#0b0b10] via-[#0b0b10] to-[#1a0505]">
+      {/* CARD 6: Quick Actions - numbered 06 with premium active state and roadmap */}
+      <div className="cab-card p-6 sm:p-8 flex flex-col justify-between corner-number">06</div>
+      <div className="cab-card p-6 sm:p-8 flex flex-col justify-between premium">
         <div>
           <div className="text-[10px] font-extrabold text-[#6b7a94] uppercase tracking-[3px] mb-5 flex items-center justify-between">
             <span>⚡ Швидкі дії</span>
@@ -179,23 +189,33 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ profile, onNavigate, onO
           <p className="text-[#9aa3b8] text-xs leading-relaxed mb-4">
             Порада механіка щодо прокачки гальм, сумісності касети, налаштування підвіски або вибору геометрії рами?
           </p>
-        </div>
 
-        <div className="flex flex-col gap-2 mt-2">
-          <button
-            onClick={() => { sound.playRatchet(); onNavigate('chat'); }}
-            className="btn-kras clip-bevel-sm px-4 py-3 bg-[#E10600] hover:bg-[#b80500] text-white text-[9px] font-extrabold tracking-[2px] uppercase transition-all shadow-[0_0_25px_rgba(225,6,0,0.35)] cursor-pointer flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Запустити AI Консультацію</span>
-          </button>
-          <button
-            onClick={() => { sound.playShifterClick(); onNavigate('geometry'); }}
-            className="btn-kras clip-bevel-sm px-4 py-2.5 bg-[#111118] border border-white/10 hover:border-white/30 text-white text-[9px] font-extrabold tracking-[2px] uppercase transition-all cursor-pointer flex items-center justify-center gap-2"
-          >
-            <Navigation className="w-3.5 h-3.5 text-[#FFC400]" />
-            <span>Підібрати геометрію рами</span>
-          </button>
+          <div className="flex flex-col gap-2 mt-2">
+            <button
+              onClick={() => { sound.playRatchet(); onNavigate('chat'); }}
+              className="btn-kras clip-bevel-sm px-4 py-3 bg-[#E10600] hover:bg-[#b80500] text-white text-[9px] font-extrabold tracking-[2px] uppercase transition-all shadow-[0_0_25px_rgba(225,6,0,0.35)] cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Запустити AI Консультацію</span>
+            </button>
+            <button
+              onClick={() => { sound.playShifterClick(); onNavigate('geometry'); }}
+              className="btn-kras clip-bevel-sm px-4 py-2.5 bg-[#111118] border border-white/10 hover:border-white/30 text-white text-[9px] font-extrabold tracking-[2px] uppercase transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Navigation className="w-3.5 h-3.5 text-[#FFC400]" />
+              <span>Підібрати геометрію рами</span>
+            </button>
+          </div>
+        </div>
+        <div className="state-indicator">
+          <span className="state-dot ready">Готово ✓</span>
+          <span className="state-dot processing">В процесі</span>
+          <span className="state-dot pending">Очікує</span>
+        </div>
+        <div className="roadmap-tracker">
+          <div className="roadmap-dot ready"></div>
+          <div className="roadmap-dot processing"></div>
+          <div className="roadmap-dot pending"></div>
         </div>
       </div>
     </div>
