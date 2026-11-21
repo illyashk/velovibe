@@ -94,7 +94,10 @@ export default function App() {
       setSession(nextSession);
       setProfile(null);
       setProfileReady(false);
-      setNeedsOnboarding(false);
+      // NOTE: intentionally NOT resetting needsOnboarding here — the
+      // loadAccount effect (triggered by session change) will re-evaluate
+      // onboarding status from the DB, preserving the correct state after
+      // email confirmation or role updates.
       setAiHistoryConsent(false);
       setProfileError(null);
       setAccountWarning(null);

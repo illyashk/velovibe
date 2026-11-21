@@ -39,8 +39,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ configurationError }) =>
           },
         });
         if (signUpError) throw signUpError;
-        if (!data.session) {
+        // If there's no session OR email is not yet confirmed, show notice and block access
+        if (!data.session || !data.user.email_confirmed_at) {
           setNotice('Перевір пошту та підтвердь адресу за посиланням. Після цього увійди в кабінет.');
+          // Do not set session here — let the app-level check block access
+          // Also clear any stale session state
+          setSession(null);
+          setAuthReady(false);
+        } else if (data.session) {
+          setSession(data.session);
+          setAuthReady(true);
         }
       } else if (mode === 'reset') {
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
