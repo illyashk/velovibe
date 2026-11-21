@@ -262,8 +262,8 @@ export default function App() {
         <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 md:px-10 pt-24 pb-20">
           <div className="animate-in fade-in duration-300">
             <div className="preloader" id="preloader">
-              <div className="preloader-logo">
-                <span />
+              <div className="preloader-logo" style={{ width: '112px', height: '112px', borderRadius: '9999px', border: '3px solid var(--red)', boxShadow: '0 0 25px rgba(225, 6, 0, 0.5)', background: 'var(--dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="preloader-logo-text" style={{ fontFamily: "'Sprintura', 'Russo One', 'Chakra Petch', sans-serif", fontWeight: 700, fontSize: '24px', color: 'var(--white)' }}>Velo</span>
               </div>
               <div className="preloader-text">VELOVIBE AI</div>
               <div className="preloader-progress">
