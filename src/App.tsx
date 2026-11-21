@@ -253,6 +253,34 @@ export default function App() {
 
   // Show preloader while loading — takes priority over auth/profile spinners
   if (showPreloader) {
+    // Preloader progress state — independent timer, no auth dependencies
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+      // Independent timer that progresses 0% → 100% over ~900ms
+      // No [deps] array — runs once and manages its own interval
+      const timer = setInterval(() => {
+        setProgress((p) => {
+          if (p >= 100) {
+            clearInterval(timer);
+            setShowPreloader(false);
+            return 100;
+          }
+          return p + Math.random() * 15 + 5; // random increment 5-20%
+        });
+      }, 50);
+
+      // Safety net: guarantee hide after 1500ms even if timer didn't finish
+      const safetyTimeout = setTimeout(() => {
+        setShowPreloader(false);
+      }, 1500);
+
+      return () => {
+        clearInterval(timer);
+        clearTimeout(safetyTimeout);
+      };
+    }, [showPreloader]); // re-run when showPreloader changes (fresh start)
+
     return (
       <main className="min-h-screen bg-[#060608] text-[#f2f2fa] flex flex-col font-body selection:bg-[#E10600] selection:text-white">
         {/* Main Cabinet Page Container */}
@@ -276,10 +304,10 @@ export default function App() {
               <div style={{ width: '240px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 {/* Progress bar */}
                 <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '9999px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: 'linear-gradient(90deg, #DC2626, #F97316, #FACC15)', width: '0%', transition: 'width 1s ease-out' }} />
+                  <div style={{ height: '100%', background: 'linear-gradient(90deg, #DC2626, #F97316, #FACC15)', width: `${progress}%`, transition: 'width 0s ease-out' }} />
                 </div>
                 {/* Percentage counter */}
-                <span style={{ fontFamily: "'Sprintura', sans-serif", color: '#FACC15', fontSize: '0.85rem' }}>0%</span>
+                <span style={{ fontFamily: "'Sprintura', sans-serif", color: '#FACC15', fontSize: '0.85rem' }}>{progress}%</span>
               </div>
             </div>
           </div>
