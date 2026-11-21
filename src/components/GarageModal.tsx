@@ -81,7 +81,7 @@ export const GarageModal: React.FC<GarageModalProps> = ({ isOpen, onClose, profi
       aria-modal="true"
       aria-label="Гараж та налаштування"
     >
-      <div className="cab-card max-w-lg w-full p-6 sm:p-8 bg-[#0b0b10] border border-white/10 relative animate-fade-in-up max-h-[90vh] overflow-y-auto">
+      <div className="cab-card max-w-lg w-full p-6 sm:p-8 bg-[#0c0c0f] border border-white/[0.07] relative animate-fade-in-up max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-5 right-5 text-[#6b7a94] hover:text-[#E10600] p-1 cursor-pointer transition-colors"
