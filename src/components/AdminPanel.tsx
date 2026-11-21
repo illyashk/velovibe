@@ -54,6 +54,48 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userId, accessToken }) =
   const [userImageDrafts, setUserImageDrafts] = useState<Record<string, string>>({});
   const [userNameDrafts, setUserNameDrafts] = useState<Record<string, string>>({});
 
+  // localStorage draft key
+  const draftKey = `admin_spot_draft_${userId}`;
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(draftKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setName(parsed.name ?? '');
+        setRegion(parsed.region ?? '');
+        setLatitude(parsed.latitude ?? '');
+        setLongitude(parsed.longitude ?? '');
+        setSourceUrl(parsed.sourceUrl ?? '');
+        setDescription(parsed.description ?? '');
+        setType(parsed.type ?? 'bikepark');
+      }
+    } catch (e) {
+      // ignore corrupt localStorage
+    }
+  }, [userId]);
+
+  // Save draft to localStorage on every field change
+  useEffect(() => {
+    try {
+      const toSave = {
+        name,
+        region,
+        latitude,
+        longitude,
+        sourceUrl,
+        description,
+        type,
+      };
+      localStorage.setItem(draftKey, JSON.stringify(toSave));
+    } catch (e) {
+      // ignore localStorage errors
+    }
+  }, [name, region, latitude, longitude, sourceUrl, description, type]);
+
+  // Clear draft from localStorage after successful addSpot
+  
   const loadSpots = async () => {
     if (!supabase) {
       setError('Supabase не налаштовано.');
@@ -127,6 +169,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userId, accessToken }) =
         console.error('Supabase Insert Error:', insertError);
         throw new Error(`${insertError.message}${insertError.details ? ` (${insertError.details})` : ''}`);
       }
+      // Clear localStorage draft after successful addition
+      try {
+        localStorage.removeItem(draftKey);
+      } catch (e) {}
       setName('');
       setRegion('');
       setLatitude('');

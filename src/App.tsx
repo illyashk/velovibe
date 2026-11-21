@@ -98,7 +98,10 @@ export default function App() {
       setAiHistoryConsent(false);
       setProfileError(null);
       setAccountWarning(null);
-      setIsAdmin(false);
+      // NOTE: intentionally NOT resetting isAdmin here — doing so causes
+      // AdminPanel to unmount and remount, losing all form state.
+      // Admin role is determined from the profiles table / app_metadata
+      // in the loadAccount effect, not from auth state changes.
     });
 
     return () => {
