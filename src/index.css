@@ -1,12 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
-@import "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
+@import url('https://fonts.googleapis.com/css2?family=Russo+One:wght@400;700&display=swap');
 
+/* Sprintura custom font - loaded @font-face below */
+
+/* ---- KRASDROP PREMIUM PALETTE & TYPOGRAPHY ---- */
 :root {
   --red: #E10600;
   --red2: #b80500;
+  --orange: #F97316;
+  --orange2: #fb923c;
   --yellow: #FFC400;
-  --dark: #060608;
+  --yellow2: #f5d76e;
+  --dark: #050507;
   --dark2: #0b0b10;
   --dark3: #111118;
   --dark4: #18181f;
@@ -14,13 +18,27 @@
   --gray: #3a4255;
   --gray2: #6b7a94;
   --gray3: #9aa3b8;
-  --font-title: 'Barlow Condensed', sans-serif;
-  --font-brand: 'Barlow Condensed', sans-serif;
+  --font-title: 'Sprintura', 'Russo One', 'Chakra Petch', sans-serif;
+  --font-brand: 'Sprintura', 'Russo One', 'Chakra Petch', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
-*, *::before, *::after {
+/* ---- SPRTURA FONT FACE ---- */
+@font-face {
+  font-family: 'Sprintura';
+  src: url('./fonts/Sprintura.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---- BASE RESETS ---- */
+* {
+  box-sizing: border-box;
+}
+
+*::before, *::after {
   box-sizing: border-box;
 }
 
@@ -36,51 +54,59 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-image:
-    linear-gradient(180deg, rgba(6, 6, 8, 0.55), rgba(6, 6, 8, 0.88)),
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 5px),
-    repeating-linear-gradient(-45deg, rgba(225, 6, 0, 0.035) 0 1px, transparent 1px 6px);
+    linear-gradient(180deg, rgba(5, 5, 7, 0.6), rgba(5, 5, 7, 0.9)),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.015) 0 1px, transparent 1px 5px),
+    repeating-linear-inset(-45deg, rgba(245, 147, 28, 0.03) 0 1px, transparent 1px 6px);
   background-attachment: fixed;
+  background-color: var(--dark);
 }
 
-.font-title {
-  font-family: var(--font-title);
-  letter-spacing: 0.08em;
+/* ---- CUSTOM SCROLLBARS ---- */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
 
-.font-brand {
-  font-family: var(--font-brand);
-  letter-spacing: 0.12em;
+::-webkit-scrollbar-track {
+  background: var(--dark);
 }
 
-.font-mono-nums {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
+::-webkit-scrollbar-thumb {
+  background: #1e1e24;
+  border-radius: 2px;
 }
 
-/* ─── BEVEL CLIP PATHS ───────────────────────────────────────────── */
-.clip-bevel {
-  clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+::-webkit-scrollbar-thumb:hover {
+  background: var(--red);
 }
 
-.clip-bevel-sm {
-  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
-.clip-bevel-lg {
-  clip-path: polygon(14px 0%, 100% 0%, calc(100% - 14px) 100%, 0% 100%);
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* ─── CARBON FIBER PATTERN ───────────────────────────────────────── */
-.bg-carbon {
-  background-color: #08080c;
-  background-image:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px),
-    repeating-linear-gradient(-45deg, rgba(225, 6, 0, 0.05) 0 1px, transparent 1px 5px),
-    radial-gradient(rgba(255, 196, 0, 0.04) 1px, transparent 1px);
-  background-size: auto, auto, 18px 18px;
+/* ---- GLOW EFFECTS ---- */
+.glow-red {
+  box-shadow: 0 0 25px rgba(225, 6, 0, 0.4);
 }
 
-/* ─── ANIMATIONS ─────────────────────────────────────────────────── */
+.glow-orange {
+  box-shadow: 0 0 25px rgba(249, 115, 22, 0.4);
+}
+
+.glow-yellow {
+  box-shadow: 0 0 25px rgba(255, 196, 0, 0.35);
+}
+
+.glow-purple {
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
+}
+
+/* ---- ANIMATIONS ---- */
 @keyframes scanline {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(1000%); }
@@ -144,16 +170,7 @@ body {
   animation: shimmer 2s linear infinite;
 }
 
-/* ─── GLOWS ──────────────────────────────────────────────────────── */
-.glow-red {
-  box-shadow: 0 0 25px rgba(225, 6, 0, 0.4);
-}
-
-.glow-gold {
-  box-shadow: 0 0 25px rgba(255, 196, 0, 0.35);
-}
-
-/* ─── KRASDROP BUTTON ────────────────────────────────────────────── */
+/* ---- KRASDROP BUTTON ---- */
 .btn-kras {
   position: relative;
   overflow: hidden;
@@ -180,7 +197,16 @@ body {
   transform: translateX(120%);
 }
 
-/* ─── CAB CARD ───────────────────────────────────────────────────── */
+.btn-kras:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(225, 6, 0, 0.35);
+}
+
+.btn-kras:active {
+  transform: scale(0.98);
+}
+
+/* ---- CAB CARD ---- */
 .cab-card {
   background: var(--dark2);
   border: 1px solid rgba(255, 255, 255, 0.04);
@@ -210,7 +236,7 @@ body {
   opacity: 1;
 }
 
-/* ─── NAVBAR LINE ────────────────────────────────────────────────── */
+/* ---- KRASDROP NAV LINE ---- */
 .kras-nav-line {
   position: relative;
 }
@@ -225,37 +251,9 @@ body {
   background: linear-gradient(90deg, var(--red), transparent);
 }
 
-/* ─── CUSTOM SCROLLBARS ──────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--dark);
-}
-
-::-webkit-scrollbar-thumb {
-  background: #252532;
-  border-radius: 2px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--red);
-}
-
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
-
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* ─── LEAFLET DARK OVERRIDES ─────────────────────────────────────── */
+/* ---- LEAFLET DARK OVERRIDES ---- */
 .leaflet-container {
-  background-color: #060608 !important;
+  background-color: var(--dark) !important;
   font-family: var(--font-body) !important;
   width: 100%;
   height: 100%;
@@ -263,57 +261,57 @@ body {
 }
 
 .leaflet-popup-content-wrapper {
-  background: #0b0b10 !important;
-  color: #f2f2fa !important;
-  border: 1px solid #E10600 !important;
+  background: var(--dark2) !important;
+  color: var(--white) !important;
+  border: 1px solid var(--red) !important;
   border-radius: 0 !important;
   box-shadow: 0 0 0 1px rgba(225, 6, 0, 0.35), 0 18px 40px rgba(0, 0, 0, 0.88), 0 0 22px rgba(225, 6, 0, 0.28) !important;
   padding: 0 !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: var(--font-body) !important;
 }
 
 .leaflet-popup-tip {
-  background: #0b0b10 !important;
-  border: 1px solid #E10600 !important;
+  background: var(--dark2) !important;
+  border: 1px solid var(--red) !important;
   box-shadow: none !important;
 }
 
 .leaflet-popup-content {
   margin: 12px 14px !important;
   line-height: 1.5 !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: var(--font-body) !important;
 }
 
 .leaflet-popup-close-button {
-  color: #6b7a94 !important;
+  color: var(--gray2) !important;
   padding: 6px 8px !important;
   font-size: 16px !important;
 }
 
 .leaflet-popup-close-button:hover {
-  color: #E10600 !important;
+  color: var(--red) !important;
   background: transparent !important;
 }
 
 .leaflet-bar a {
-  background-color: #0b0b10 !important;
-  color: #ffffff !important;
+  background-color: var(--dark2) !important;
+  color: var(--white) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .leaflet-bar a:hover {
-  background-color: #18181f !important;
-  color: #E10600 !important;
+  background-color: var(--dark3) !important;
+  color: var(--red) !important;
 }
 
 .leaflet-control-attribution {
-  background: rgba(6, 6, 8, 0.85) !important;
-  color: #3a4255 !important;
+  background: rgba(5, 5, 7, 0.85) !important;
+  color: var(--gray2) !important;
   font-size: 9px !important;
 }
 
 .leaflet-control-attribution a {
-  color: #6b7a94 !important;
+  color: var(--gray2) !important;
 }
 
 /* Custom marker — remove default leaflet icon white box */
@@ -322,7 +320,7 @@ body {
   border: none !important;
 }
 
-/* ─── RANGE INPUT ────────────────────────────────────────────────── */
+/* ---- RANGE INPUT ---- */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -341,7 +339,7 @@ input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   width: 14px;
   height: 14px;
-  background: #E10600;
+  background: var(--red);
   clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
   cursor: pointer;
   margin-top: -5.5px;
@@ -355,18 +353,18 @@ input[type="range"]::-moz-range-track {
 input[type="range"]::-moz-range-thumb {
   width: 14px;
   height: 14px;
-  background: #E10600;
+  background: var(--red);
   border: none;
   border-radius: 0;
   cursor: pointer;
 }
 
-/* ─── LOADING SPINNER ────────────────────────────────────────────── */
+/* ---- LOADING SPINNER ---- */
 .loading-spinner {
   width: 16px;
   height: 16px;
   border: 2px solid rgba(225, 6, 0, 0.2);
-  border-top-color: #E10600;
+  border-top-color: var(--red);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
   flex-shrink: 0;
@@ -376,7 +374,7 @@ input[type="range"]::-moz-range-thumb {
   to { transform: rotate(360deg); }
 }
 
-/* ─── LINE CLAMP ─────────────────────────────────────────────────── */
+/* ---- LINE CLAMP ---- */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -384,87 +382,218 @@ input[type="range"]::-moz-range-thumb {
   overflow: hidden;
 }
 
-/* ─── SELECTION ──────────────────────────────────────────────────── */
+/* ---- SELECTION ---- */
 ::selection {
-  background: #E10600;
+  background: var(--red);
   color: white;
 }
 
+/* ---- NEW ANIMATIONS FOR PREMIUM UI ---- */
 
-/* ─── NEW ANIMATIONS FOR SPOTS RADAR ───────────────────────────── */
-@keyframes fadeIn {
-  from { opacity: 0; }
+/* Pulse animation for active elements */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(0.98); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Hover lift */
+@keyframes lift {
+  from { transform: translateY(0); }
+  to { transform: translateY(-4px); }
+}
+
+.animate-lift:hover {
+  animation: lift 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Button hover glow */
+@keyframes button-glow {
+  from { box-shadow: 0 0 15px rgba(225, 6, 0, 0.3); }
+  to { box-shadow: 0 0 30px rgba(225, 6, 0, 0.5), 0 0 60px rgba(249, 115, 22, 0.3); }
+}
+
+.btn-kras.glow-on-hover:hover {
+  animation: button-glow 0.3s ease-out;
+}
+
+/* Skeleton loader */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes skeleton-fade {
+  from { opacity: 0.4; }
   to { opacity: 1; }
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.5s ease-out both;
+.skeleton-loader {
+  background: linear-gradient(90deg, var(--dark3) 0%, var(--dark4) 50%, var(--dark3) 100%);
+  background-size: 200% auto;
+  animation: skeleton-shimmer 1.5s linear infinite;
 }
 
+/* Fade in up */
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fadeInUp {
-  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-@keyframes pulseSlow {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
+/* Card hover transition */
+@keyframes card-hover {
+  from { transform: translateY(0); }
+  to { transform: translateY(-4px); }
 }
 
-.animate-pulse-slow {
-  animation: pulseSlow 2s ease-in-out infinite;
+.hover-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+.hover-lift:hover {
+  transform: translateY(-4px);
 }
 
-.animate-scaleIn {
-  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+/* Progress bar animation */
+@keyframes progress-bar {
+  from { width: 0%; }
+  to { width: 100%; }
 }
 
-/* ─── GEOLOCATION INDICATOR ────────────────────────────────────── */
-.geo-active::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: conic-gradient(from 0deg, #16A34A, transparent 180deg, #16A34A);
-  border-radius: inherit;
-  animation: rotate 3s linear infinite;
-  z-index: -1;
+.progress-bar-fill {
+  transition: width 0.3s ease-out;
 }
 
-@keyframes rotate {
+/* Neon text effect */
+.neon-text {
+  text-shadow: 0 0 20px rgba(225, 6, 0, 0.5), 0 0 40px rgba(249, 115, 22, 0.3);
+}
+
+/* Neon orange text */
+.neon-orange {
+  text-shadow: 0 0 20px rgba(249, 115, 22, 0.5), 0 0 40px rgba(255, 196, 0, 0.3);
+}
+
+/* ---- BRAND LOGO ANIMATIONS ---- */
+@keyframes logo-spin {
+  from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-/* ─── ERROR SHAKE ANIMATION ────────────────────────────────────── */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+.animate-logo-spin {
+  animation: logo-spin 20s linear infinite;
 }
 
-.animate-shake {
-  animation: shake 0.5s ease-in-out;
+/* ---- PRELOADER STYLES ---- */
+.preloader {
+  position: fixed;
+  inset: 0;
+  background: var(--dark);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+
+.preloader.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.preloader-logo {
+  width: 80px;
+  height: 80px;
+  border: 3px solid var(--red);
+  border-radius: 50%;
+  position: relative;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preloader-logo::before {
+  content: 'VELO';
+  font-family: 'Sprintura', 'Russo One', 'Chakra Petch', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--white);
+}
+
+.preloader-logo::after {
+  content: 'VIBE';
+  font-family: 'Sprintura', 'Russo One', 'Chakra Petch', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--orange);
+  margin-left: 4px;
+  animation: logo-spin 10s linear infinite;
+}
+
+.preloader-text {
+  font-family: 'Sprintura', 'Russo One', 'Chakra Petch', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--gray2);
+  margin-bottom: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.preloader-subtext {
+  font-size: 11px;
+  color: var(--gray3);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin-top: 8px;
+}
+
+.preloader-progress {
+  position: absolute;
+  bottom: 24px;
+  width: 200px;
+  height: 6px;
+  background: linear-gradient(90deg, var(--red), var(--orange), var(--yellow));
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.preloader-progress .preloader-progress-percentage {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Sprintura', 'Russo One', 'Chakra Petch', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--white);
+  white-space: nowrap;
+}
+
+.preloader-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--red), var(--orange), var(--yellow));
+  width: 0%;
+  animation: progress-bar 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .preloader-progress-bar {
+    animation: none;
+  }
+  .btn-kras *,
+  .cab-card * {
+    transition: none !important;
+    animation: none !important;
+  }
 }
