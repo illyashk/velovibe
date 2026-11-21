@@ -609,7 +609,9 @@ app.get('/api/velovibe/spots', async (req: Request, res: Response) => {
     res.json({ ...payload, source: 'OpenStreetMap', cached: false });
   } catch (error: unknown) {
     console.error('OpenStreetMap spots request failed:', error);
-    res.status(502).json({ error: 'Не вдалося завантажити веломісця з OpenStreetMap. Спробуй оновити список пізніше.' });
+    // Never return 502 - return empty array with error info so frontend can handle gracefully
+    const payload = { spots: [], checkedAt: new Date().toISOString(), source: 'OpenStreetMap', cached: false, error: 'Не вдалося завантажити веломісця з OpenStreetMap. Спробуй оновити список пізніше.' };
+    res.json(payload);
   }
 });
 

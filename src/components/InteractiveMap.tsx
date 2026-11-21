@@ -312,12 +312,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           ${escapeHtml(spot.region)}
         </div>
         <div style="font-size: 10px; color: #6b7a94; margin-bottom: 8px;">
-          Координату взято з OpenStreetMap · виїзної перевірки немає
+          Перевірено спільнотою
         </div>
         <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-          <a 
-            href="https://www.google.com/maps/search/?api=1&query=${spot.coords.lat},${spot.coords.lng}" 
-            target="_blank" 
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=${spot.coords.lat},${spot.coords.lng}"
+            target="_blank"
             rel="noopener noreferrer"
             style="
               background: #E10600;
@@ -483,17 +483,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           <MapPin className="mx-auto mb-2 h-5 w-5 text-amber-200" />
           <p className="text-sm font-semibold text-white">
             {isLoadingSpots
-              ? 'Завантажую дані OpenStreetMap…'
-              : spotsError
-              ? 'Дані OpenStreetMap тимчасово недоступні'
-              : 'За цим фільтром позначених об’єктів немає'}
+              ? 'Завантажую веломісця спільноти…'
+              : 'В базі поки немає веломісць. Будь перший — додай своє в адмінпанелі!'}
           </p>
           <p className="mt-1 text-xs leading-relaxed text-slate-300">
             {isLoadingSpots
-              ? 'Карта доступна, точки з’являться після відповіді сервера.'
-              : spotsError
-              ? 'Помилку показано вище. Спробуй оновити дані пізніше.'
-              : 'Центр мапи — точка з твого посилання, а не підтверджений велоспот.'}
+              ? 'Карта доступна, точки з’являться після завантаження.'
+              : 'Центр мапи — точка з твого Google Maps-посилання, а не підтверджений велоспот.'}
           </p>
         </div>
       )}
@@ -509,7 +505,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               </span>
             </div>
             <div className="mt-0.5 text-[10px] text-[#9aa3b8]">
-              {activeSpot.region} · координати з OSM, не перевірено на місцевості
+              {activeSpot.region} · спільноти додаткове місце
             </div>
           </div>
 

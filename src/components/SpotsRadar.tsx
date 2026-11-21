@@ -11,7 +11,6 @@ import {
   ExternalLink,
   AlertCircle,
   Star,
-  RefreshCw,
 } from 'lucide-react';
 
 interface SpotsRadarProps {
@@ -28,34 +27,7 @@ const hasVerifiedLocation = (
 
 const DEFAULT_MAP_CENTER = { lat: 49.2483278, lng: 28.4292258 };
 
-const FALLBACK_COMMUNITY_SPOTS: Spot[] = [
-  {
-    id: 'fallback:lapata',
-    name: 'Лапата',
-    locationStatus: 'verified',
-    locationSource: 'https://www.google.com/maps/search/?api=1&query=%D0%9B%D0%B0%D0%BF%D0%B0%D1%82%D0%B0+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8F',
-    region: 'Вінниця',
-    locationName: 'Вінниця',
-    city: 'vinnytsia',
-    coords: { lat: 49.2358, lng: 28.4182 },
-    type: 'street',
-    description: 'Спільнотна точка для перевірки маршруту та формату каталогу.',
-    checkedAt: new Date().toISOString(),
-  },
-  {
-    id: 'fallback:smolenska',
-    name: 'Смоленська',
-    locationStatus: 'verified',
-    locationSource: 'https://www.google.com/maps/search/?api=1&query=%D0%A1%D0%BC%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D1%8C%D0%BA%D0%B5+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8F',
-    region: 'Вінниця',
-    locationName: 'Смоленське',
-    city: 'vinnytsia',
-    coords: { lat: 49.2225, lng: 28.4679 },
-    type: 'pumptrack',
-    description: 'Запасний спот для відображення спільнотного каталогу в офлайн-режимі.',
-    checkedAt: new Date().toISOString(),
-  },
-];
+const FALLBACK_COMMUNITY_SPOTS: Spot[] = [];
 
 export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
   const [spots, setSpots] = useState<Spot[]>([]);
@@ -64,11 +36,8 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
   const [activeSpotId, setActiveSpotId] = useState<string>('');
   const [showJsonModal, setShowJsonModal] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [spotsError, setSpotsError] = useState<string | null>(null);
   const [communityError, setCommunityError] = useState<string | null>(null);
   const [isLoadingSpots, setIsLoadingSpots] = useState(true);
-  const [spotsCheckedAt, setSpotsCheckedAt] = useState<string | null>(null);
-  const [refreshSpotsKey, setRefreshSpotsKey] = useState(0);
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('velovibe_favorite_spots') || '[]') as string[];
@@ -84,23 +53,8 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
   useEffect(() => {
     const controller = new AbortController();
     setIsLoadingSpots(true);
-    setSpotsError(null);
     setCommunityError(null);
-    const refresh = refreshSpotsKey > 0 ? '?refresh=1' : '';
     const loadSpots = async () => {
-      let osmSpots: Spot[] = [];
-      try {
-        const response = await fetch(`/api/velovibe/spots${refresh}`, { signal: controller.signal });
-        const result = await response.json() as { spots?: Spot[]; checkedAt?: string; error?: string };
-        if (!response.ok) throw new Error(result.error || 'Не вдалося завантажити місця з OpenStreetMap.');
-        if (!Array.isArray(result.spots)) throw new Error('Сервер повернув некоректний список місць.');
-        osmSpots = result.spots;
-        setSpotsCheckedAt(result.checkedAt || null);
-      } catch (requestError: unknown) {
-        if (requestError instanceof Error && requestError.name === 'AbortError') return;
-        setSpotsError(requestError instanceof Error ? requestError.message : 'Не вдалося завантажити місця з OpenStreetMap.');
-      }
-
       let communitySpots: Spot[] = [];
       if (supabase && !controller.signal.aborted) {
         const { data, error } = await supabase
@@ -124,9 +78,9 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
         }
       }
 
+      // OSM spots are no longer fetched - only Supabase verified spots are shown
       if (!controller.signal.aborted) {
-        const combinedSpots = [...communitySpots, ...osmSpots];
-        setSpots(combinedSpots.length > 0 ? combinedSpots : FALLBACK_COMMUNITY_SPOTS);
+        setSpots(communitySpots.length > 0 ? communitySpots : []);
         setIsLoadingSpots(false);
       }
     };
@@ -134,7 +88,7 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
     void loadSpots();
 
     return () => controller.abort();
-  }, [refreshSpotsKey]);
+  }, []);
 
   useEffect(() => {
     try {
@@ -265,31 +219,22 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 mb-6 border-b border-white/[0.04] gap-4">
         <div>
           <div className="text-[10px] font-extrabold text-[#6b7a94] uppercase tracking-[3px] mb-1">
-            Дані OpenStreetMap · Україна
+            Веломісця спільноти · Україна
           </div>
           <h2 className="font-title text-2xl sm:text-3xl font-extrabold text-white uppercase tracking-[1.5px]">
             Місця на мапі. Погода наживо.
           </h2>
           <p className="mt-2 text-xs text-slate-400">
             {isLoadingSpots
-              ? 'Завантажую позначені в OpenStreetMap веломісця…'
-              : spotsError
-              ? `${spotsError} · показані резервні локальні точки для стабільної роботи інтерфейсу.`
-              : `${spots.length} позначених об’єктів${spotsCheckedAt ? ` · дані OSM оновлено ${new Intl.DateTimeFormat('uk-UA', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(spotsCheckedAt))}` : ''}`}
+              ? 'Завантажую веломісця зі спільноти…'
+              : communityError
+              ? `${communityError}`
+              : `${spots.length} веломісць`}
           </p>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setRefreshSpotsKey((key) => key + 1)}
-            disabled={isLoadingSpots}
-            className="btn-kras clip-bevel-sm px-3.5 py-2 bg-[#111118] border border-white/10 hover:border-white/30 disabled:opacity-50 text-white text-[9px] font-extrabold tracking-[1.5px] uppercase transition-all cursor-pointer flex items-center gap-1.5"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-[#FFC400] ${isLoadingSpots ? 'animate-spin' : ''}`} />
-            <span>Оновити дані</span>
-          </button>
           <button
             onClick={() => {
               sound.playShifterClick();
@@ -298,7 +243,7 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
             className="btn-kras clip-bevel-sm px-3.5 py-2 bg-[#111118] border border-white/10 hover:border-white/30 text-white text-[9px] font-extrabold tracking-[1.5px] uppercase transition-all cursor-pointer flex items-center gap-1.5 hover:scale-105 active:scale-95"
           >
             <Code2 className="w-3.5 h-3.5 text-[#FFC400]" />
-            <span>Точки з джерелом: {verifiedSpots.length}</span>
+            <span>Перевірені точки: {verifiedSpots.length}</span>
           </button>
           <button
             onClick={handleDownloadGeoJson}
@@ -311,20 +256,20 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
         </div>
       </div>
 
-      <div className="mb-6 rounded-xl border border-amber-400/25 bg-gradient-to-br from-amber-400/[0.08] via-[#111118] to-[#111118] p-5 sm:p-6">
+      <div className="mb-6 rounded-xl border border-sky-300/25 bg-gradient-to-br from-sky-300/[0.08] via-[#111118] to-[#111118] p-5 sm:p-6">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 rounded-lg bg-amber-400/10 p-2 text-amber-300">
+          <div className="mt-0.5 rounded-lg bg-sky-300/10 p-2 text-sky-300">
             <MapPin className="h-5 w-5" />
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-bold text-white">Джерела даних і межі точності</h3>
-              <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-2 py-0.5 text-[10px] font-semibold text-amber-200">
-                {verifiedSpots.length} точок із посиланням на OSM
+              <span className="rounded-full border border-sky-300/30 bg-sky-300/10 px-2 py-0.5 text-[10px] font-semibold text-sky-200">
+                {verifiedSpots.length} перевірених точок
               </span>
             </div>
             <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-300">
-              Показуємо лише об’єкти з OpenStreetMap, що мають назву, координати та посилання на першоджерело. Це не підтверджує, що трейл відкритий, доступний чи перевірений на місцевості; для ліній і умов катання потрібна окрема перевірка. Центр мапи — координати з твого посилання, а не спот.
+              Показуємо лише веломісця, додані спільнотою та перевірені адміністраторами. Координати та джерело вказані при додаванні; доступність та стан трейлів можуть змінюватися — перевіряй актуальну інформацію перед виїздом.
             </p>
           </div>
         </div>
@@ -395,8 +340,8 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
-            <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-emerald-200">Є координати й джерело OSM</span>
-            <span className="rounded-full border border-amber-300/25 bg-amber-300/10 px-2.5 py-1 text-amber-100">Не підтверджено на місцевості</span>
+            <span className="rounded-full border border-sky-300/25 bg-sky-300/10 px-2.5 py-1 text-sky-200">Перевірені адмінами</span>
+            <span className="rounded-full border border-amber-300/25 bg-amber-300/10 px-2.5 py-1 text-amber-100">Перевір доступність перед виїздом</span>
           </div>
         </div>
       </div>
@@ -405,7 +350,6 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
         spots={filteredSpots.filter(hasVerifiedLocation)}
         activeSpot={activeSpot}
         isLoadingSpots={isLoadingSpots}
-        spotsError={spotsError}
         onSelectSpot={(spot) => {
           sound.playShifterClick();
           setActiveSpotId(spot.id);
@@ -421,7 +365,7 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
             <h3 className="mt-1 truncate text-lg font-bold text-white">{activeSpot.name}</h3>
             <p className="mt-1 text-sm text-slate-400">{activeSpot.region}</p>
             <p className="mt-3 text-xs leading-relaxed text-amber-100/80">
-              {`Координата об’єкта взята з OpenStreetMap${activeSpot.osmType && activeSpot.osmId ? ` (${activeSpot.osmType} ${activeSpot.osmId})` : ''}. Це може бути центр контуру, а не вхід на територію; доступ і стан не перевірені.`}
+              {`Це веломісце додано спільнотою. Координати та джерело вказані при додаванні (${activeSpot.locationSource || 'джерело недоступне'}). Доступ і стан трейлів не перевірені автоматично — звір з місцевими перед виїздом.`}
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
@@ -433,14 +377,16 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
             >
               Шукати в Google Картах <ExternalLink className="h-3.5 w-3.5" />
             </a>
+            {activeSpot.locationSource && (
             <a
-              href={activeSpot.locationSource || `https://www.openstreetmap.org/search?query=${encodeURIComponent(`${activeSpot.name}, ${activeSpot.region}`)}`}
+              href={activeSpot.locationSource}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-medium text-slate-200 transition-colors hover:border-white/20"
             >
-              Шукати в OpenStreetMap <ExternalLink className="h-3.5 w-3.5" />
+              Джерело координат <ExternalLink className="h-3.5 w-3.5" />
             </a>
+          )}
             <button
               onClick={() => {
                 const isFavorite = favorites.includes(activeSpot.id);
@@ -461,7 +407,7 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
       {/* Spot Cards Grid */}
       <div className="mt-8">
         <div className="text-[10px] font-extrabold text-[#6b7a94] uppercase tracking-[3px] mb-4">
-          Місця з OpenStreetMap ({filteredSpots.length})
+          Веломісця спільноти ({filteredSpots.length})
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -504,10 +450,10 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
                     </button>
                   </div>
                   <div className="mt-3 flex items-center gap-2 border-t border-white/[0.06] pt-3 text-[11px]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
-                    <span className="text-emerald-100/90">
-                      {spot.type === 'bikepark' ? 'Велопарк у OSM' : spot.type === 'pumptrack' ? 'Майданчик BMX у OSM' : 'Велосипедний об’єкт у OSM'}
-                      {' · '}не перевірено на місцевості
+                    <span className="h-1.5 w-1.5 rounded-full bg-sky-300" />
+                    <span className="text-sky-100/90">
+                      {spot.type === 'bikepark' ? 'Велопарк' : spot.type === 'pumptrack' ? 'Памптрек' : spot.type === 'enduro' ? 'Ендуро-трейл' : spot.type === 'dirt' ? 'Дьорт / стрибки' : 'Інше веломісце'}
+                      {' · '}додано спільнотою
                     </span>
                   </div>
                 </div>
@@ -529,7 +475,7 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
                       e.stopPropagation();
                       sound.playShifterClick();
                       onAskAi(
-                        `Я розглядаю поїздку до об’єкта «${spot.name}» у районі «${spot.region}». Координати взяті з OpenStreetMap (${spot.locationSource || 'джерело недоступне'}), але не перевірені на місцевості; точний вхід, маршрут і умови невідомі. Не вигадуй розташування трейлів, покриття, складність, перепад висот, доступ чи небезпеки. Поясни, що треба звірити з місцевими або офіційними джерелами перед виїздом.`
+                        `Я розглядаю поїздку до об’єкта «${spot.name}» у районі «${spot.region}». Це веломісце додано спільнотою, координати та джерело вказані при додаванні. Не вигадуй розташування трейлів, покриття, складність, перепад висот, доступ чи небезпеки. Поясни, що треба звірити з місцевими або офіційними джерелами перед виїздом.`
                       );
                     }}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-[#E10600] px-3 py-2 text-[10px] font-semibold text-white transition-colors hover:bg-[#b80500]"
@@ -544,12 +490,10 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
         {filteredSpots.length === 0 && (
           <div className="rounded-xl border border-dashed border-white/10 px-5 py-10 text-center text-sm text-slate-400">
             {isLoadingSpots
-              ? 'Завантажую об’єкти OpenStreetMap…'
-              : spotsError
-              ? 'Дані OSM недоступні. Перевір з’єднання або повтори запит кнопкою «Оновити дані».'
+              ? 'Завантажую веломісця спільноти…'
               : favoritesOnly
               ? 'Обраних місць немає. Познач картку зіркою або вимкни фільтр «Обрані».'
-              : 'За цими фільтрами об’єктів OSM не знайдено.'}
+              : 'В базі поки немає веломісць. Будь першим — додай своє в адмінпанелі!'}
           </div>
         )}
       </div>
@@ -577,7 +521,7 @@ export const SpotsRadar: React.FC<SpotsRadarProps> = ({ onAskAi }) => {
             </div>
 
             <p className="text-xs text-[#9aa3b8] mb-3">
-              До файлу потрапляють тільки об’єкти з координатами та посиланням на OSM. Це не посвідчує доступність траси; точки контурів можуть бути центрами об’єкта. Об’єктів у файлі: {verifiedSpots.length}.
+              До файлу потрапляють тільки перевірені веломісця зі спільноти. Це не посвідчує доступність траси; координати вказані при додаванні. Об’єктів у файлі: {verifiedSpots.length}.
             </p>
 
             <div className="p-3 bg-[#111118] border border-white/[0.06] font-mono text-[10px] text-[#FFC400] max-h-72 overflow-y-auto mb-4">
