@@ -123,7 +123,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userId, accessToken }) =
         status: 'pending',
         created_by: userId,
       });
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Supabase Insert Error:', insertError);
+        throw new Error(`${insertError.message}${insertError.details ? ` (${insertError.details})` : ''}`);
+      }
       setName('');
       setRegion('');
       setLatitude('');

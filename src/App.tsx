@@ -15,6 +15,7 @@ import { AuthScreen } from './components/AuthScreen';
 import { RiderOnboarding } from './components/RiderOnboarding';
 import { AdminPanel } from './components/AdminPanel';
 import { SupportChat } from './components/SupportChat';
+import { ServiceLog } from './components/ServiceLog';
 import { AdSlot } from './components/AdSlot';
 import { BrandImage } from './components/BrandImage';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
@@ -355,6 +356,11 @@ export default function App() {
             {/* Geometry Lab Section */}
             <section id="geometry-section">
               <GeometryLab onAskAi={handleAskAi} />
+            </section>
+
+            {/* Service Log Section */}
+            <section id="service-log-section">
+              <ServiceLog currentBikeMileageKm={450} />
             </section>
 
             {/* Components Matrix Section */}
